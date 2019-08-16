@@ -4,6 +4,7 @@
 		<title>Go Back (And Do It Again)</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<meta name="theme-color" content="#222222">
 		<style>
 			body {
 				margin: 0;
@@ -365,14 +366,6 @@
 		// console.log(cycle, actualWay, tokens.children[actualWay].name, colorArr[actualWay], bigTokens.children[correctWay].name);
 		cycle ++;
 		correctWay = Math.floor(Math.random() * 5);
-		bigTokens.visible = true;
-		for (var i = 0; i < bigTokens.children.length; i++) {
-			if(bigTokens.children[i].name === correctWay){
-				bigTokens.children[i].visible = true;
-			} else {
-				bigTokens.children[i].visible = false;
-			}
-		}
 		for (var i = 0; i < rewards.children.length;i++) {
 			if(rewards.children[i].name === correctWay){
 				rewards.children[i].visible = true;
@@ -391,6 +384,17 @@
 			var tmpColor = colorArr[i];
 			tokens.children[i].material.color.set(tmpColor);
 			// tokens.children[i].material.emissive.set(tmpColor);
+		}
+		bigTokens.visible = true;
+		for (var i = 0; i < bigTokens.children.length; i++) {
+			if(bigTokens.children[i].name === correctWay){
+				bigTokens.children[i].visible = true;
+				var hexStr = '#' + bigTokens.children[i].material.color.getHexString();
+				console.log(hexStr);
+				document.querySelector('meta[name="theme-color"]').setAttribute('content', hexStr);
+			} else {
+				bigTokens.children[i].visible = false;
+			}
 		}
 	}
 
