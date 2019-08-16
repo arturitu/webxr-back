@@ -26,12 +26,22 @@
 	var mouse = new THREE.Vector2();
 	var intersection = null;
 
-	var train, world;
+	var isVRActive = false;
+
+	var world;
 	var ways = [];
+	var tokens;
+	var wayLength = 200;
 	var actualWay = 2;
 	var newWay = 2;
 	var targetXpos = 0;
 	var lerpSpeed = 0.9;
+
+	var solved = false;
+	var gameSpeed = 10;
+	var cycle = 0;
+
+	var reward;
 
 	var prevTime = performance.now();
 
@@ -42,16 +52,14 @@
 
 		scene = new THREE.Scene();
 		scene.background = new THREE.Color( 0xdeb307 );
-		scene.fog = new THREE.Fog( 0xdeb307, 0, 75 );
+		scene.fog = new THREE.Fog( 0xdeb307, 0, 45 );
 
 		world = new THREE.Object3D();
 		world.position.y = -1.7;
+		world.position.z = -8;
 		scene.add(world)
 
-		train = new THREE.Object3D();
-		scene.add( train );
-
-		camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
+		camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 		camera.layers.enable( 1 );
 		scene.add( camera );
 
@@ -59,32 +67,44 @@
 		light.position.set( 0.5, 1, 0.75 );
 		scene.add( light );
 
-		// floor
+		// reward
+		var rewardMaterial = new THREE.LineBasicMaterial( { color: 0xffffff } );
+		var rewardGeometry = new THREE.Geometry();
+		var segmentCount = 4;
+		var radius = 0.05;
+		for (var i = 0; i <= segmentCount; i++) {
+			var theta = (i / segmentCount) * Math.PI * 2;
+			rewardGeometry.vertices.push(
+				new THREE.Vector3(
+					Math.cos(theta) * radius,
+					Math.sin(theta) * radius,
+					0));
+		}
+		reward = new THREE.Line(rewardGeometry, rewardMaterial);
+		reward.position.z = -0.5;
+		reward.position.y = -0.05;
+		reward.visible = false;
+		scene.add( reward );
 
-		var floorGeometry = new THREE.PlaneBufferGeometry( 2000, 2000, 100, 100 );
-		floorGeometry.rotateX( - Math.PI / 2 );
-
-		var floorMaterial = new THREE.MeshBasicMaterial( { color: 0xf6d242 } );
-
-		var floor = new THREE.Mesh( floorGeometry, floorMaterial );
-		world.add( floor );
-
-		// point lights
+		// tokens
+		tokens = new THREE.Group();
 		var spheres = []
 		var sphereGeometry = new THREE.SphereBufferGeometry(0.35,4,2)
 		var sphereMaterial = new THREE.MeshStandardMaterial( { color: 0xffffff, emissive: 0xffffff } );
-		for ( var i = 0; i < 50; i ++ ) {
+		var sphereMaterial2 = new THREE.MeshStandardMaterial( { color: 0xff00ff, emissive: 0xff00ff } );
+		for ( var i = 0; i < 5; i ++ ) {
 			var sphere = new THREE.Mesh( sphereGeometry, sphereMaterial );
-			sphere.position.x = Math.floor( Math.random() * 5 ) * 2 - 4;
+			sphere.position.x = i * 2 - 4;
 			sphere.position.y = 1.5;
-			sphere.position.z = -20 * Math.ceil( Math.random() * 50 );
-			spheres.push(sphere)
-			world.add( sphere );
+			sphere.position.z = -50;
+			spheres.push(sphere);
+			tokens.add(sphere);
+			world.add( tokens );
 		}
 
-		var wayGeometry = new THREE.PlaneBufferGeometry( 1.9, 2000, 1, 1 );
-		wayGeometry.rotateX( - Math.PI / 2 );
 		// ways
+		var wayGeometry = new THREE.PlaneBufferGeometry( 1.9, wayLength, 1, 1 );
+		wayGeometry.rotateX( - Math.PI / 2 );
 		for ( var i = 0; i < 5; i ++ ) {
 			var wayMaterial = new THREE.MeshStandardMaterial({ color: 0xeebf2d });
 			var way = new THREE.Mesh( wayGeometry, wayMaterial );
@@ -94,22 +114,21 @@
 			way.position.z = 0;
 			ways.push(way)
 			world.add(way);
-			// TODO - tú no te mueves, se mueve todo lo demás
 		}
 
 		// objects
 
-		var boxGeometry = new THREE.BoxBufferGeometry( 20, 20, 20 );
-		// var boxMaterial = new THREE.MeshStandardMaterial( { color: 0xffffff, emissive: 0xffffff } );
-		var boxMaterial = new THREE.MeshStandardMaterial( { color: 0xf6d242 } );
-		for ( var i = 0; i < 500; i ++ ) {
-			var box = new THREE.Mesh( boxGeometry, boxMaterial );
-			box.position.x = Math.floor( Math.random() * 20 - 10 ) * 20;
-			box.position.y = Math.floor( Math.random() * 5 ) * 20 + 20;
-			box.position.z = -20 * Math.ceil( Math.random() * 50 );
+		// var boxGeometry = new THREE.BoxBufferGeometry( 20, 20, 20 );
+		// // var boxMaterial = new THREE.MeshStandardMaterial( { color: 0xffffff, emissive: 0xffffff } );
+		// var boxMaterial = new THREE.MeshStandardMaterial( { color: 0xf6d242 } );
+		// for ( var i = 0; i < 500; i ++ ) {
+		// 	var box = new THREE.Mesh( boxGeometry, boxMaterial );
+		// 	box.position.x = Math.floor( Math.random() * 20 - 10 ) * 20;
+		// 	box.position.y = Math.floor( Math.random() * 5 ) * 20 + 20;
+		// 	box.position.z = -20 * Math.ceil( Math.random() * 50 );
 
-			world.add( box );
-		}
+		// 	world.add( box );
+		// }
 
 		//
 
@@ -264,6 +283,36 @@
 		return ((ways.length - 1) - way)*2 - 4
 	}
 
+	// Game logic
+
+	function solve(){
+		console.log('pre');
+		tokens.visible = false;
+		solved = true
+		reward.scale.set(0.1, 0.1, 0.1);
+		reward.visible = true;
+	}
+
+	function newCycle(){
+		cycle ++;
+		console.log(cycle, actualWay);
+		world.position.z = 0;
+		reward.position.z = -0.5;
+		reward.visible = false;
+		solved = false;
+	}
+
+	function postSolved(){
+		console.log('post');
+		tokens.visible = true;
+	}
+
+	//
+
+	function toggleVRActive(){
+		controller1.visible = renderer.vr.isPresenting();
+		controller2.visible = renderer.vr.isPresenting();
+	}
 	//
 
 	function onWindowResize() {
@@ -283,7 +332,16 @@
 		var time = performance.now();
 		var delta = ( time - prevTime ) / 1000;
 
-		world.position.z += 8 * delta;
+		world.position.z += gameSpeed * delta;
+		if(Math.abs(world.position.z) >= wayLength/4 -2 && !solved){
+			solve()
+		}
+		if (Math.abs(world.position.z) >= wayLength/4 + 2 && !tokens.visible){
+			postSolved()
+		}
+		if(Math.abs(world.position.z) >= wayLength/4 + 10){
+			newCycle()
+		}
 
 		if(newWay !== actualWay) {
 			actualWay = newWay
@@ -293,7 +351,17 @@
 		if(targetXpos !== world.position.x){
 			world.position.x = THREE.Math.lerp(targetXpos, world.position.x, lerpSpeed)
 		}
+		if(reward.visible){
+			var newScale = THREE.Math.lerp(2.5, reward.scale.x, lerpSpeed);
+			reward.scale.set(newScale, newScale, newScale);
+			reward.position.z += 0.01;
+		}
+
 		prevTime = time;
+
+		if(isVRActive !== renderer.vr.isPresenting()){
+			toggleVRActive();
+		}
 		if(renderer.vr.isPresenting()){
 			cleanIntersected();
 
