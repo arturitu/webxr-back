@@ -16,89 +16,22 @@
 <body>
 <script type="module">
     import * as THREE from "/three.module.js";
-    var PointerLockControls = function ( camera, domElement ) {
 
-        this.domElement = domElement || document.body;
-
-        //
-        // internals
-        //
-
-        var scope = this;
-
-        var changeEvent = { type: 'change' };
-
-        var euler = new THREE.Euler( 0, 0, 0, 'YXZ' );
-
-        var PI_2 = Math.PI / 2;
-
-        function onMouseMove( event ) {
-
-			var c = document.getElementById("c")
-            var movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
-            var movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
-
-            euler.setFromQuaternion( camera.quaternion );
-
-            euler.y = (1 - normalize(event.x, c.width, 0)) * Math.PI*2 - Math.PI;
-            euler.x = (1 - normalize(event.y, c.height, 0)) * Math.PI - PI_2;
-
-            // euler.x = Math.max( - PI_2, Math.min( PI_2, euler.x ) );
-
-            camera.quaternion.setFromEuler( euler );
-
-            scope.dispatchEvent( changeEvent );
-
-		}
-		
-		function normalize (val, max, min) { return (val - min) / (max - min) }
-
-        this.connect = function () {
-
-            document.addEventListener( 'mousemove', onMouseMove, false );
-
-        };
-
-        this.disconnect = function () {
-
-            document.removeEventListener( 'mousemove', onMouseMove, false );
-
-        };
-
-        this.dispose = function () {
-
-            this.disconnect();
-
-        };
-
-        this.getObject = function () { // retaining this method for backward compatibility
-
-            return camera;
-
-        };
-
-        this.getDirection = function () {
-
-            var direction = new THREE.Vector3( 0, 0, - 1 );
-
-            return function ( v ) {
-
-                return v.copy( direction ).applyQuaternion( camera.quaternion );
-
-            };
-
-        }();
-
-        this.connect();
-
-    };
-
-    PointerLockControls.prototype = Object.create( THREE.EventDispatcher.prototype );
-    PointerLockControls.prototype.constructor = PointerLockControls;
-
-	var camera, scene, renderer, controls;
+	var camera, scene, renderer;
 	var controller1, controller2;
+
+	var raycaster, intersected = [];
+	var tempMatrix = new THREE.Matrix4();
+
+	var mouse = new THREE.Vector2();
+	var intersection = null;
+
 	var train, world;
+	var ways = [];
+	var actualWay = 2;
+	var newWay = 2;
+	var targetXpos = 0;
+	var lerpSpeed = 0.9;
 
 	var prevTime = performance.now();
 
@@ -126,10 +59,6 @@
 		light.position.set( 0.5, 1, 0.75 );
 		scene.add( light );
 
-		controls = new PointerLockControls( train );
-
-		scene.add( controls.getObject() );
-
 		// floor
 
 		var floorGeometry = new THREE.PlaneBufferGeometry( 2000, 2000, 100, 100 );
@@ -153,18 +82,18 @@
 			world.add( sphere );
 		}
 
-		var ways = [];
 		var wayGeometry = new THREE.PlaneBufferGeometry( 1.9, 2000, 1, 1 );
 		wayGeometry.rotateX( - Math.PI / 2 );
 		// ways
 		for ( var i = 0; i < 5; i ++ ) {
-			var wayMaterial = new THREE.MeshBasicMaterial({ color: 0xeebf2d });
+			var wayMaterial = new THREE.MeshStandardMaterial({ color: 0xeebf2d });
 			var way = new THREE.Mesh( wayGeometry, wayMaterial );
+			way.name = 'way' + i;
 			way.position.x = (i*2) - 4;
 			way.position.y = 0.1;
 			way.position.z = 0;
 			ways.push(way)
-			world.add( way );
+			world.add(way);
 			// TODO - tú no te mueves, se mueve todo lo demás
 		}
 
@@ -180,7 +109,6 @@
 			box.position.z = -20 * Math.ceil( Math.random() * 50 );
 
 			world.add( box );
-
 		}
 
 		//
@@ -197,8 +125,16 @@
 
 		// controllers
 
-		function onSelectStart() {
-			
+		function onSelectStart(event) {
+			var controller = event.target;
+
+			var intersections = getIntersections( controller );
+
+			if ( intersections.length > 0 ) {
+				var intersection = intersections[ 0 ];
+				console.log(intersection.object);
+				newWay = parseInt(intersection.object.name.substr(3,1), 10);
+			}
 		}
 
 		function onSelectEnd() {
@@ -214,6 +150,9 @@
 		controller2.addEventListener( 'selectend', onSelectEnd );
 		scene.add( controller2 );
 
+		// raycaster
+		raycaster = new THREE.Raycaster();
+
 		// helpers
 
 		var geometry = new THREE.BufferGeometry().setFromPoints( [ new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, - 1 ) ] );
@@ -226,8 +165,106 @@
 		controller2.add( line.clone() );
 
 		window.addEventListener( 'resize', onWindowResize, false );
+		document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+		document.addEventListener( 'click', onClick, false );
 
 	}
+
+	function onDocumentMouseMove( event ) {
+
+		event.preventDefault();
+		if(!event.targetTouches){
+			mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+			mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+			
+			doFallbackRaycast();
+		}
+	}
+
+	function onClick( event ) {
+
+		event.preventDefault();
+
+		mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+		mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+		doFallbackRaycast();
+		
+		if(intersected.length){
+			newWay = parseInt(intersected[0].name.substr(3,1), 10);
+		}
+
+	}
+
+	// Intersection methods
+
+	function doFallbackRaycast () {
+		cleanIntersected();
+
+		raycaster.setFromCamera( mouse, camera );
+		var intersections = raycaster.intersectObjects( ways );
+		intersection = ( intersections.length ) > 0 ? intersections[ 0 ] : null;
+		if (intersection !== null ) {
+			var object = intersection.object;
+			object.material.emissive.r = 1;
+			intersected.push( object );
+		}
+	}
+
+	function getIntersections( controller ) {
+
+		tempMatrix.identity().extractRotation( controller.matrixWorld );
+
+		raycaster.ray.origin.setFromMatrixPosition( controller.matrixWorld );
+		raycaster.ray.direction.set( 0, 0, - 1 ).applyMatrix4( tempMatrix );
+
+		return raycaster.intersectObjects( ways );
+	}
+
+	function intersectObjects( controller ) {
+
+		// Do not highlight when already selected
+
+		if ( controller.userData.selected !== undefined ) return;
+
+		var line = controller.getObjectByName( 'line' );
+		var intersections = getIntersections( controller );
+
+		if ( intersections.length > 0 ) {
+
+			var intersection = intersections[ 0 ];
+
+			var object = intersection.object;
+			object.material.emissive.r = 1;
+			intersected.push( object );
+
+			line.scale.z = intersection.distance;
+
+		} else {
+
+			line.scale.z = 5;
+
+		}
+
+	}
+
+	function cleanIntersected() {
+
+		while ( intersected.length ) {
+
+			var object = intersected.pop();
+			object.material.emissive.r = 0;
+
+		}
+
+	}
+
+	// movement
+	function getTargetX (way) {
+		return ((ways.length - 1) - way)*2 - 4
+	}
+
+	//
 
 	function onWindowResize() {
 
@@ -246,9 +283,26 @@
 		var time = performance.now();
 		var delta = ( time - prevTime ) / 1000;
 
-		world.position.z += 10 * delta;
+		world.position.z += 8 * delta;
 
+		if(newWay !== actualWay) {
+			actualWay = newWay
+			targetXpos = getTargetX(newWay);
+		}
+
+		if(targetXpos !== world.position.x){
+			world.position.x = THREE.Math.lerp(targetXpos, world.position.x, lerpSpeed)
+		}
 		prevTime = time;
+		if(renderer.vr.isPresenting()){
+			cleanIntersected();
+
+			intersectObjects( controller1 );
+			intersectObjects( controller2 );
+			lerpSpeed = 0.75
+		} else {
+			lerpSpeed = 0.9
+		}
 
 		renderer.render( scene, camera );
 
