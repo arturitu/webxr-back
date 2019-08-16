@@ -28,12 +28,33 @@
 
 	var isVRActive = false;
 
+	// var bgColor = 0xdeb307;
+	var bgColor = 0x222222;
+
 	var world;
 	var ways = [];
-	var tokens;
+	// var wayColor = 0xeebf2d
+	// var wayColorOver = 0xf4d36b
+	var wayColor = 0x333333;
+	var wayColorOver = 0x444444;
 	var wayLength = 200;
 	var actualWay = 2;
 	var newWay = 2;
+	var correctWay = 2;
+
+	var tokens;
+	var bigTokens;
+	var colorArr = [
+		0xfb39ca,
+		0xfdca2a,
+		0x2bca20,
+		0xfc9125,
+		0x0d6afc,
+		0x6419cb,
+		0xffffff,
+		0xfa0018
+	]
+	
 	var targetXpos = 0;
 	var lerpSpeed = 0.9;
 
@@ -41,7 +62,7 @@
 	var gameSpeed = 10;
 	var cycle = 0;
 
-	var reward;
+	var rewards;
 
 	var prevTime = performance.now();
 
@@ -51,8 +72,8 @@
 	function init() {
 
 		scene = new THREE.Scene();
-		scene.background = new THREE.Color( 0xdeb307 );
-		scene.fog = new THREE.Fog( 0xdeb307, 0, 45 );
+		scene.background = new THREE.Color( bgColor );
+		scene.fog = new THREE.Fog( bgColor, 0, 45 );
 
 		world = new THREE.Object3D();
 		world.position.y = -1.7;
@@ -61,6 +82,7 @@
 
 		camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 		camera.layers.enable( 1 );
+		// camera.rotation.y = Math.PI;
 		scene.add( camera );
 
 		var light = new THREE.HemisphereLight( 0xeeeeff, 0x777788, 0.75 );
@@ -68,37 +90,72 @@
 		scene.add( light );
 
 		// reward
+		rewards = new THREE.Group();
 		var rewardMaterial = new THREE.LineBasicMaterial( { color: 0xffffff } );
-		var rewardGeometry = new THREE.Geometry();
-		var segmentCount = 4;
-		var radius = 0.05;
-		for (var i = 0; i <= segmentCount; i++) {
-			var theta = (i / segmentCount) * Math.PI * 2;
-			rewardGeometry.vertices.push(
-				new THREE.Vector3(
-					Math.cos(theta) * radius,
-					Math.sin(theta) * radius,
-					0));
+		for ( var i = 0; i < 5; i ++ ) {
+			var rewardGeometry;
+			switch (i) {
+				case 0:
+				rewardGeometry = getRedwardGeometry(3);
+					break;
+				case 1:
+				rewardGeometry = getRedwardGeometry(4);
+					break;
+				case 2:
+				rewardGeometry = getRedwardGeometry(5);
+					break;
+				case 3:
+				rewardGeometry = getRedwardGeometry(6);
+					break;
+				case 4:
+				rewardGeometry = getRedwardGeometry(32);
+					break;
+			}
+			var reward = new THREE.Line(rewardGeometry, rewardMaterial);
+			reward.name = i;
+			rewards.add(reward);
 		}
-		reward = new THREE.Line(rewardGeometry, rewardMaterial);
-		reward.position.z = -0.5;
-		reward.position.y = -0.05;
-		reward.visible = false;
-		scene.add( reward );
+		rewards.position.z = -0.5;
+		rewards.position.y = -0.05;
+		rewards.visible = false;
+		scene.add( rewards );
 
 		// tokens
 		tokens = new THREE.Group();
-		var spheres = []
-		var sphereGeometry = new THREE.SphereBufferGeometry(0.35,4,2)
-		var sphereMaterial = new THREE.MeshStandardMaterial( { color: 0xffffff, emissive: 0xffffff } );
-		var sphereMaterial2 = new THREE.MeshStandardMaterial( { color: 0xff00ff, emissive: 0xff00ff } );
+		bigTokens = new THREE.Group();
+		bigTokens.position.set(0, 2, -5);
+		bigTokens.visible = false;
+		scene.add(bigTokens);
 		for ( var i = 0; i < 5; i ++ ) {
-			var sphere = new THREE.Mesh( sphereGeometry, sphereMaterial );
-			sphere.position.x = i * 2 - 4;
-			sphere.position.y = 1.5;
-			sphere.position.z = -50;
-			spheres.push(sphere);
-			tokens.add(sphere);
+			var tokenGeometry
+			switch (i) {
+				case 0:
+				// tokenGeometry = new THREE.SphereBufferGeometry(0.35,4,2)
+				tokenGeometry = new THREE.RingBufferGeometry(0.25,0.35,3)
+					break;
+				case 1:
+				tokenGeometry = new THREE.RingBufferGeometry(0.25,0.35,4)
+					break;
+				case 2:
+				tokenGeometry = new THREE.RingBufferGeometry(0.25,0.35,5)
+					break;
+				case 3:
+				tokenGeometry = new THREE.RingBufferGeometry(0.25,0.35,6)
+					break;
+				case 4:
+				tokenGeometry = new THREE.RingBufferGeometry(0.25,0.35,32)
+					break;
+			}
+			var tokenMaterial = new THREE.MeshBasicMaterial( { color: 0xffffff, side: THREE.DoubleSide } );
+			var token = new THREE.Mesh( tokenGeometry, tokenMaterial );
+			var clonedToken = new THREE.Mesh( tokenGeometry, tokenMaterial );
+			token.name = i;
+			clonedToken.name = i;
+			token.position.x = i * 2 - 4;
+			token.position.y = 1.5;
+			token.position.z = -50;
+			tokens.add(token);
+			bigTokens.add(clonedToken);
 			world.add( tokens );
 		}
 
@@ -106,7 +163,7 @@
 		var wayGeometry = new THREE.PlaneBufferGeometry( 1.9, wayLength, 1, 1 );
 		wayGeometry.rotateX( - Math.PI / 2 );
 		for ( var i = 0; i < 5; i ++ ) {
-			var wayMaterial = new THREE.MeshStandardMaterial({ color: 0xeebf2d });
+			var wayMaterial = new THREE.MeshBasicMaterial({ color: wayColor });
 			var way = new THREE.Mesh( wayGeometry, wayMaterial );
 			way.name = 'way' + i;
 			way.position.x = (i*2) - 4;
@@ -115,20 +172,6 @@
 			ways.push(way)
 			world.add(way);
 		}
-
-		// objects
-
-		// var boxGeometry = new THREE.BoxBufferGeometry( 20, 20, 20 );
-		// // var boxMaterial = new THREE.MeshStandardMaterial( { color: 0xffffff, emissive: 0xffffff } );
-		// var boxMaterial = new THREE.MeshStandardMaterial( { color: 0xf6d242 } );
-		// for ( var i = 0; i < 500; i ++ ) {
-		// 	var box = new THREE.Mesh( boxGeometry, boxMaterial );
-		// 	box.position.x = Math.floor( Math.random() * 20 - 10 ) * 20;
-		// 	box.position.y = Math.floor( Math.random() * 5 ) * 20 + 20;
-		// 	box.position.z = -20 * Math.ceil( Math.random() * 50 );
-
-		// 	world.add( box );
-		// }
 
 		//
 
@@ -175,7 +218,7 @@
 		// helpers
 
 		var geometry = new THREE.BufferGeometry().setFromPoints( [ new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, - 1 ) ] );
-		var material = new THREE.LineBasicMaterial( {color: 0x000000} );
+		var material = new THREE.LineBasicMaterial( {color: 0xffffff} );
 		var line = new THREE.Line( geometry, material);
 		line.name = 'line';
 		line.scale.z = 5;
@@ -186,6 +229,8 @@
 		window.addEventListener( 'resize', onWindowResize, false );
 		document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 		document.addEventListener( 'click', onClick, false );
+
+		newCycle();
 
 	}
 
@@ -225,7 +270,7 @@
 		intersection = ( intersections.length ) > 0 ? intersections[ 0 ] : null;
 		if (intersection !== null ) {
 			var object = intersection.object;
-			object.material.emissive.r = 1;
+			object.material.color.set(wayColorOver);
 			intersected.push( object );
 		}
 	}
@@ -254,7 +299,7 @@
 			var intersection = intersections[ 0 ];
 
 			var object = intersection.object;
-			object.material.emissive.r = 1;
+			object.material.color.set(wayColorOver);
 			intersected.push( object );
 
 			line.scale.z = intersection.distance;
@@ -272,7 +317,7 @@
 		while ( intersected.length ) {
 
 			var object = intersected.pop();
-			object.material.emissive.r = 0;
+			object.material.color.set(wayColor);
 
 		}
 
@@ -283,27 +328,75 @@
 		return ((ways.length - 1) - way)*2 - 4
 	}
 
-	// Game logic
+	// utils
+	function shuffle(array) {
+		array.sort(() => Math.random() - 0.5);
+	}
 
+	function getRedwardGeometry(segmentCount){
+		var rewardGeometry = new THREE.Geometry();
+		var radius = 0.05;
+		for (var i = 0; i <= segmentCount; i++) {
+			var theta = (i / segmentCount) * Math.PI * 2;
+			rewardGeometry.vertices.push(
+				new THREE.Vector3(
+					Math.cos(theta) * radius,
+					Math.sin(theta) * radius,
+					0));
+		}
+		return rewardGeometry;
+	}
+
+	// Game logic
 	function solve(){
 		console.log('pre');
+		if(tokens.children[actualWay].name === bigTokens.children[correctWay].name){
+			console.log('ok');
+		} else {
+			console.log('ko');
+		}
 		tokens.visible = false;
-		solved = true
-		reward.scale.set(0.1, 0.1, 0.1);
-		reward.visible = true;
+		solved = true;
+		rewards.scale.set(0.1, 0.1, 0.1);
+		rewards.visible = true;
 	}
 
 	function newCycle(){
+		// console.log(cycle, actualWay, tokens.children[actualWay].name, colorArr[actualWay], bigTokens.children[correctWay].name);
 		cycle ++;
-		console.log(cycle, actualWay);
+		correctWay = Math.floor(Math.random() * 5);
+		bigTokens.visible = true;
+		for (var i = 0; i < bigTokens.children.length; i++) {
+			if(bigTokens.children[i].name === correctWay){
+				bigTokens.children[i].visible = true;
+			} else {
+				bigTokens.children[i].visible = false;
+			}
+		}
+		for (var i = 0; i < rewards.children.length;i++) {
+			if(rewards.children[i].name === correctWay){
+				rewards.children[i].visible = true;
+			} else {
+				rewards.children[i].visible = false;
+			}
+		}
 		world.position.z = 0;
-		reward.position.z = -0.5;
-		reward.visible = false;
+		rewards.position.z = -0.5;
+		rewards.visible = false;
 		solved = false;
+		shuffle(tokens.children);
+		shuffle(colorArr);
+		for (var i =0; i < tokens.children.length; i++) {
+			tokens.children[i].position.x = i * 2 - 4;
+			var tmpColor = colorArr[i];
+			tokens.children[i].material.color.set(tmpColor);
+			// tokens.children[i].material.emissive.set(tmpColor);
+		}
 	}
 
 	function postSolved(){
 		console.log('post');
+		bigTokens.visible = false;
 		tokens.visible = true;
 	}
 
@@ -351,10 +444,10 @@
 		if(targetXpos !== world.position.x){
 			world.position.x = THREE.Math.lerp(targetXpos, world.position.x, lerpSpeed)
 		}
-		if(reward.visible){
-			var newScale = THREE.Math.lerp(2.5, reward.scale.x, lerpSpeed);
-			reward.scale.set(newScale, newScale, newScale);
-			reward.position.z += 0.01;
+		if(rewards.visible){
+			var newScale = THREE.Math.lerp(2.5, rewards.scale.x, lerpSpeed);
+			rewards.scale.set(newScale, newScale, newScale);
+			rewards.position.z += 0.01;
 		}
 
 		prevTime = time;
