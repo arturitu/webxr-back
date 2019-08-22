@@ -22,11 +22,10 @@ var world
 var startIcon
 
 var ways = []
-// var wayColor = 0xeebf2d
-// var wayColorOver = 0xf4d36b
 var wayColor = 0x333333
 var wayColorOver = 0x444444
 var wayLength = 200
+var tokensInitialPosZ = 50
 var actualWay = 2
 var newWay = 2
 var correctWay = 2
@@ -35,7 +34,7 @@ var objsToIntersect = []
 
 var scoreboard
 
-var score = 0
+var score
 var highscore
 var highScoreItem
 var units
@@ -63,11 +62,15 @@ var lerpSpeed = 0.9
 
 // 0 - before start
 // 1 - started
+// 2 - catching
+// 3 - back
+// 4 - remembering
+// 5 - lose
+// 6 - max score 999
 var gameStatus = 0
 
-var solved = false
-var gameSpeed = 10
-var cycle = 0
+var solved, gameSpeed, backSpeed, cycle, round, cyclesPerRound, caught, remembered, tokensStore, errorOnSolved
+resetGameSettings()
 
 var rewards
 
@@ -83,7 +86,6 @@ function init () {
 
   world = new THREE.Object3D()
   world.position.y = -1.7
-  world.position.z = -8
   scene.add(world)
 
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
@@ -100,7 +102,8 @@ function init () {
     color: wayColor
   })
   startIcon = new THREE.Mesh(new THREE.CircleBufferGeometry(0.35, 0), test)
-  startIcon.position.set(0, 200, -5)
+  startIcon.position.set(0, 1.7, -5)
+  startIcon.visible = false
   startIcon.name = 'start'
   scene.add(startIcon)
   // reward
@@ -158,8 +161,6 @@ function init () {
   highScoreItem.position.y = 0.05
   scoreboard.add(highScoreItem)
 
-  setScoreboard(0, false)
-
   // units
   units = new THREE.Group()
   addDigits(units, 0)
@@ -174,6 +175,7 @@ function init () {
 
   // tokens
   tokens = new THREE.Group()
+  tokens.position.z = -tokensInitialPosZ
   bigTokens = new THREE.Group()
   bigTokens.position.set(0, 1.7, -5)
   bigTokens.visible = false
@@ -205,7 +207,6 @@ function init () {
     clonedToken.name = i
     token.position.x = i * 2 - 4
     token.position.y = 1.5
-    token.position.z = -50
     tokens.add(token)
     bigTokens.add(clonedToken)
     world.add(tokens)
@@ -314,10 +315,21 @@ function onSelectEnd () {
 // Scoreboard
 
 function setScoreboard (val, highScore) {
+  var valStr = Number(val).toString()
+  if (valStr.length > 3) {
+    valStr = '999'
+  } else if (valStr.length === 2) {
+    valStr = '0' + valStr
+  } else if (valStr.length === 1) {
+    valStr = '00' + valStr
+  }
+  setDigit(units, valStr.substr(0, 1))
+  setDigit(tens, valStr.substr(1, 1))
+  setDigit(hundreds, valStr.substr(2, 1))
   if (highScore) {
     highScoreItem.visible = true
-    scoreboard.position.x = 0.1
-    scoreboard.scale.set(1.5, 1.5, 1.5)
+    scoreboard.position.x = 0.15
+    scoreboard.scale.set(1.25, 1.25, 1.25)
     scoreMaterial.color.set(highscoreColor)
   } else {
     highScoreItem.visible = false
@@ -327,6 +339,15 @@ function setScoreboard (val, highScore) {
   }
 }
 
+function setDigit (group, val) {
+  for (let i = 0; i < group.children.length; i++) {
+    if (group.children[i].name === Number(val)) {
+      group.children[i].visible = true
+    } else {
+      group.children[i].visible = false
+    }
+  }
+}
 // Mouse methods
 
 function onDocumentMouseMove (event) {
@@ -433,19 +454,54 @@ function getRedwardGeometry (segmentCount) {
 }
 
 // Game logic
+
+function resetGameSettings () {
+  solved = false
+  errorOnSolved = false
+  gameSpeed = 10
+  backSpeed = 50
+  cycle = 0
+  round = 0
+  cyclesPerRound = 2
+  caught = 0
+  remembered = 0
+  tokensStore = []
+  score = 0
+}
+
 function showStartIcon () {
-  startIcon.position.y = 1.7
+  startIcon.visible = true
 }
 
 function startGame () {
-  startIcon.position.y = 200
-  newCycle()
+  resetGameSettings()
+  startIcon.visible = false
   gameStatus = 1
-  score = 0
   setScoreboard(score, false)
+  newCycle()
 }
 
 function gameTick (delta) {
+  switch (gameStatus) {
+    case 2:
+      catchingTick(delta)
+      break
+    case 3:
+      backTick(delta)
+      break
+    case 4:
+      rememberingTick(delta)
+      break
+  }
+
+  if (rewards.visible) {
+    var newScale = THREE.Math.lerp(2.5, rewards.scale.x, lerpSpeed)
+    rewards.scale.set(newScale, newScale, newScale)
+    rewards.position.z += 0.01
+  }
+}
+
+function catchingTick (delta) {
   world.position.z += gameSpeed * delta
   if (Math.abs(world.position.z) >= wayLength / 4 - 2 && !solved) {
     solve()
@@ -456,11 +512,159 @@ function gameTick (delta) {
   if (Math.abs(world.position.z) >= wayLength / 4 + 10) {
     newCycle()
   }
+}
 
-  if (rewards.visible) {
-    var newScale = THREE.Math.lerp(2.5, rewards.scale.x, lerpSpeed)
-    rewards.scale.set(newScale, newScale, newScale)
-    rewards.position.z += 0.01
+function backTick (delta) {
+  world.position.z -= backSpeed * delta
+  if (world.position.z < -wayLength / 2) {
+    newCycle()
+  }
+}
+
+function rememberingTick (delta) {
+  world.position.z += gameSpeed * delta
+  if (Math.abs(world.position.z) >= wayLength / 4 - 2 && !solved) {
+    solveRemembering()
+  }
+  if (Math.abs(world.position.z) >= wayLength / 4 + 2 && !tokens.visible) {
+    postSolved()
+  }
+  if (Math.abs(world.position.z) >= wayLength / 4 + 10) {
+    newCycle()
+  }
+}
+
+function newCycle () {
+  console.log(round, cycle, cyclesPerRound, caught, remembered)
+  console.log(tokensStore)
+  if (errorOnSolved) {
+    // Error time
+    gameStatus = 5
+    endGame()
+    return
+  }
+  if (cycle < cyclesPerRound && caught < cyclesPerRound) {
+    // Catching time
+    gameStatus = 2
+    setCorrectWay()
+    suffleTokens()
+    setBigTokens()
+    scoreboard.visible = false
+    console.log('----2')
+  } else if (cycle < cyclesPerRound * 2 && caught === cyclesPerRound) {
+    // Back time
+    gameStatus = 3
+    console.log('----3')
+    var modBack = cycle % cyclesPerRound
+    var indexStoredTokens = cyclesPerRound - modBack - 1
+    setStoredTokens(indexStoredTokens)
+  } else if (cycle >= cyclesPerRound * 2 && remembered < caught) {
+    // Remembering time
+    gameStatus = 4
+    console.log('----4')
+    suffleStoredTokens(remembered)
+    setCorrectRememberedWay(remembered)
+    scoreboard.visible = true
+  } else {
+    // Next round
+    gameStatus = 6
+    console.log('----6')
+  }
+
+  resetAtNewCycle()
+  cycle++
+}
+
+function setCorrectWay () {
+  correctWay = Math.floor(Math.random() * 5)
+  showCorrectReward(correctWay)
+}
+
+function setCorrectRememberedWay (index) {
+  console.log(tokensStore[index][1])
+  for (var i = 0; i < tokens.children.length; i++) {
+    if (tokens.children[i].name === tokensStore[index][1][0]) {
+      correctWay = (tokens.children[i].position.x + 4) / 2
+      showCorrectReward(tokens.children[i].name)
+    }
+  }
+}
+
+function showCorrectReward (correctName) {
+  for (var i = 0; i < rewards.children.length; i++) {
+    if (rewards.children[i].name === correctName) {
+      rewards.children[i].visible = true
+    } else {
+      rewards.children[i].visible = false
+    }
+  }
+}
+function resetAtNewCycle () {
+  world.position.z = 0
+  rewards.position.z = -0.5
+  rewards.visible = false
+  solved = false
+}
+
+function suffleTokens () {
+  tokens.position.z = -tokensInitialPosZ
+  shuffle(tokens.children)
+  shuffle(colorArr)
+  tokensStore[caught] = [[], []]
+  for (var i = 0; i < tokens.children.length; i++) {
+    tokens.children[i].position.x = i * 2 - 4
+    var tmpColor = colorArr[i]
+    tokens.children[i].material.color.set(tmpColor)
+    tokensStore[caught][0][i] = [tokens.children[i].name, tmpColor]
+    if (tokens.children[i].name === correctWay) {
+      tokensStore[caught][1] = [tokens.children[i].name, tmpColor]
+    }
+  }
+}
+
+function setStoredTokens (index) {
+  tokens.position.z = tokensInitialPosZ
+  placeStoredTokens(index)
+}
+
+function suffleStoredTokens (index) {
+  tokens.position.z = -tokensInitialPosZ
+  shuffle(tokensStore[index][0])
+  placeStoredTokens(index)
+}
+
+function placeStoredTokens (index) {
+  for (var i = 0; i < tokensStore[index][0].length; i++) {
+    for (var j = 0; j < tokens.children.length; j++) {
+      if (tokens.children[j].name === tokensStore[index][0][i][0]) {
+        tokens.children[j].position.x = i * 2 - 4
+        tokens.children[j].material.color.set(tokensStore[index][0][i][1])
+      }
+    }
+  }
+}
+
+function setBigTokens () {
+  for (var i = 0; i < bigTokens.children.length; i++) {
+    if (bigTokens.children[i].name === correctWay) {
+      bigTokens.children[i].visible = true
+      var hexStr = '#' + bigTokens.children[i].material.color.getHexString()
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', hexStr)
+    } else {
+      bigTokens.children[i].visible = false
+    }
+  }
+  bigTokens.visible = true
+}
+
+function showError () {
+  // Show reward error
+  for (var i = 0; i < rewards.children.length; i++) {
+    if (i === rewards.children.length - 1) {
+      rewards.children[i].visible = true
+    } else {
+      rewards.children[i].visible = false
+    }
   }
 }
 
@@ -468,15 +672,11 @@ function solve () {
   console.log('pre')
   if (tokens.children[actualWay].name === bigTokens.children[correctWay].name) {
     console.log('ok')
+    caught += 1
   } else {
     console.log('ko')
-    for (var i = 0; i < rewards.children.length; i++) {
-      if (i === rewards.children.length - 1) {
-        rewards.children[i].visible = true
-      } else {
-        rewards.children[i].visible = false
-      }
-    }
+    errorOnSolved = true
+    showError()
   }
   tokens.visible = false
   solved = true
@@ -484,50 +684,36 @@ function solve () {
   rewards.visible = true
 }
 
-function newCycle () {
-  console.log(cycle, actualWay, tokens.children[actualWay].name, colorArr[actualWay], bigTokens.children[correctWay].name)
-  cycle++
-  correctWay = Math.floor(Math.random() * 5)
-  for (var i = 0; i < rewards.children.length; i++) {
-    if (rewards.children[i].name === correctWay) {
-      rewards.children[i].visible = true
-    } else {
-      rewards.children[i].visible = false
-    }
+function solveRemembering () {
+  console.log('preRemembering')
+  console.log(actualWay, correctWay, tokens.children[actualWay].name, tokens.children[correctWay].name)
+  if (tokens.children[actualWay].name === tokens.children[correctWay].name) {
+    console.log('ok rem')
+    remembered += 1
+    score += 1
+    setScoreboard(score, false)
+  } else {
+    console.log('ko rem')
+    errorOnSolved = true
+    showError()
   }
-  world.position.z = 0
-  rewards.position.z = -0.5
-  rewards.visible = false
-  solved = false
-  shuffle(tokens.children)
-  shuffle(colorArr)
-  for (i = 0; i < tokens.children.length; i++) {
-    tokens.children[i].position.x = i * 2 - 4
-    var tmpColor = colorArr[i]
-    tokens.children[i].material.color.set(tmpColor)
-    // tokens.children[i].material.emissive.set(tmpColor);
-  }
-  bigTokens.visible = true
-  for (i = 0; i < bigTokens.children.length; i++) {
-    if (bigTokens.children[i].name === correctWay) {
-      bigTokens.children[i].visible = true
-      var hexStr = '#' + bigTokens.children[i].material.color.getHexString()
-      console.log(hexStr)
-      document.querySelector('meta[name="theme-color"]').setAttribute('content', hexStr)
-    } else {
-      bigTokens.children[i].visible = false
-    }
-  }
+  tokens.visible = false
+  solved = true
+  rewards.scale.set(0.1, 0.1, 0.1)
+  rewards.visible = true
 }
 
 function postSolved () {
-  console.log('post')
+  console.log('postSolved')
   bigTokens.visible = false
   tokens.visible = true
 }
 
-function endGame (points) {
-  window.localStorage.setItem('unboring.js13k.back', points)
+function endGame () {
+  highscore = score
+  window.localStorage.setItem('unboring.js13k.back', score)
+  setScoreboard(highscore, true)
+  startIcon.visible = true
 }
 
 //
@@ -552,8 +738,9 @@ function animate () {
 function render () {
   var time = window.performance.now()
   var delta = (time - prevTime) / 1000
+  prevTime = time
 
-  if (gameStatus === 1) {
+  if (gameStatus > 0 && gameStatus < 5) {
     gameTick(delta)
   }
 
@@ -565,8 +752,6 @@ function render () {
   if (targetXpos !== world.position.x) {
     world.position.x = THREE.Math.lerp(targetXpos, world.position.x, lerpSpeed)
   }
-
-  prevTime = time
 
   if (isVRActive !== renderer.vr.isPresenting()) {
     toggleVRActive()
