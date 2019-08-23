@@ -16,7 +16,7 @@ var isVRActive = false
 
 // var bgColor = 0xdeb307;
 var bgColor = 0x222222
-var bgColorBack = 0xaaaaaa
+var bgColorBack = 0x232323
 
 var world
 
@@ -43,6 +43,7 @@ var tens
 var hundreds
 var scoreMaterial
 var scoreColor = 0xffffff
+var scoreColorOff = 0x444444
 var highscoreColor = 0xffcc00
 
 var tokens
@@ -108,6 +109,21 @@ function init () {
   light.position.set(0.5, 1, 0.75)
   scene.add(light)
 
+  // Provistional Cubes
+  for (var i = 0; i < 50; i++) {
+    var boxGeometry = new THREE.BoxBufferGeometry(5, 5, 5)
+    var boxMaterial = new THREE.MeshBasicMaterial({ color: wayColor })
+    var box = new THREE.Mesh(boxGeometry, boxMaterial)
+    var tmpVal = 1
+    if (Math.random() > 0.5) {
+      tmpVal = -1
+    }
+    box.position.x = 15 * tmpVal
+    box.position.y = Math.floor(Math.random() * 10) * 5 + 3
+    box.position.z = Math.floor(Math.random() * 200 - 100)
+
+    world.add(box)
+  }
   // start icon
   var test = new THREE.MeshBasicMaterial({
     color: wayColor
@@ -575,8 +591,8 @@ function rememberingTick (delta) {
 }
 
 function newRound () {
-//   scene.background = new THREE.Color(bgColor)
-//   scene.fog = new THREE.Fog(bgColor, 0, 45)
+  scene.background = new THREE.Color(bgColor)
+  scene.fog = new THREE.Fog(bgColor, 0, 45)
   //   round += 1
   if (cyclesPerRound === 5) {
     gameSpeed += 5
@@ -607,11 +623,12 @@ function newCycle () {
     setCorrectWay()
     suffleTokens()
     setBigTokens()
+    scoreMaterial.color.set(scoreColorOff)
     // scoreboard.visible = false
   } else if (cycle < cyclesPerRound * 2 && caught === cyclesPerRound) {
     // Back time
-    // scene.background = new THREE.Color(bgColorBack)
-    // scene.fog = new THREE.Fog(bgColorBack, 0, 45)
+    scene.background = new THREE.Color(bgColorBack)
+    scene.fog = new THREE.Fog(bgColorBack, 0, 45)
     gameStatus = 3
     var modBack = cycle % cyclesPerRound
     var indexStoredTokens = cyclesPerRound - modBack - 1
@@ -619,8 +636,9 @@ function newCycle () {
     setHints()
   } else if (cycle >= cyclesPerRound * 2 && remembered < caught) {
     // Remembering time
-    // scene.background = new THREE.Color(bgColor)
-    // scene.fog = new THREE.Fog(bgColor, 0, 45)
+    scoreMaterial.color.set(scoreColor)
+    scene.background = new THREE.Color(bgColor)
+    scene.fog = new THREE.Fog(bgColor, 0, 45)
     gameStatus = 4
     suffleStoredTokens(remembered)
     setCorrectRememberedWay(remembered)
@@ -818,8 +836,8 @@ function postSolved () {
 }
 
 function endGame () {
-//   scene.background = new THREE.Color(bgColor)
-//   scene.fog = new THREE.Fog(bgColor, 0, 45)
+  scene.background = new THREE.Color(bgColor)
+  scene.fog = new THREE.Fog(bgColor, 0, 45)
   hints.visible = false
   if (score > highscore) {
     highscore = score
