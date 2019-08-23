@@ -16,6 +16,7 @@ var isVRActive = false
 
 // var bgColor = 0xdeb307;
 var bgColor = 0x222222
+var bgColorBack = 0xaaaaaa
 
 var world
 
@@ -46,6 +47,9 @@ var highscoreColor = 0xffcc00
 
 var tokens
 var bigTokens
+
+var hints, maxHints
+
 var colorArr = [
   0xfb39ca,
   0xfdca2a,
@@ -76,6 +80,13 @@ var rewards
 
 var prevTime = window.performance.now()
 
+var swipe = {
+  sX: 0,
+  sY: 0,
+  eX: 0,
+  eY: 0
+}
+
 init()
 animate()
 
@@ -102,7 +113,7 @@ function init () {
     color: wayColor
   })
   startIcon = new THREE.Mesh(new THREE.CircleBufferGeometry(0.35, 0), test)
-  startIcon.position.set(0, 1.7, -5)
+  startIcon.position.set(0, 1.5, -5)
   startIcon.visible = false
   startIcon.name = 'start'
   scene.add(startIcon)
@@ -173,11 +184,28 @@ function init () {
 
   scene.add(scoreboard)
 
+  // Hint object
+  hints = new THREE.Group()
+  hints.visible = false
+  hints.position.set(0, 2, -5)
+  scene.add(hints)
+  var hintGeometry = new THREE.CircleBufferGeometry(0.35, 32)
+  var hintMaterial = new THREE.MeshBasicMaterial()
+  for (i = 0; i < maxHints; i++) {
+    var hintGroup = new THREE.Group()
+    hintGroup.scale.set(0.25, 0.25, 0.25)
+    var hint = new THREE.Mesh(hintGeometry, hintMaterial)
+    hint.name = 'hidden'
+    hintGroup.add(hint)
+    hintGroup.position.x = -0.62 + i * 0.25
+    hints.add(hintGroup)
+  }
+
   // tokens
   tokens = new THREE.Group()
   tokens.position.z = -tokensInitialPosZ
   bigTokens = new THREE.Group()
-  bigTokens.position.set(0, 1.7, -5)
+  bigTokens.position.set(0, 1.5, -5)
   bigTokens.visible = false
   scene.add(bigTokens)
   for (i = 0; i < 5; i++) {
@@ -207,6 +235,14 @@ function init () {
     clonedToken.name = i
     token.position.x = i * 2 - 4
     token.position.y = 1.5
+
+    for (var j = 0; j < hints.children.length; j++) {
+      var hintTmp = new THREE.Mesh(tokenGeometry, tokenMaterial)
+      hintTmp.name = i
+      hintTmp.visible = false
+      hints.children[j].add(hintTmp)
+    }
+
     tokens.add(token)
     bigTokens.add(clonedToken)
     world.add(tokens)
@@ -269,6 +305,9 @@ function init () {
   window.addEventListener('resize', onWindowResize, false)
   document.addEventListener('mousemove', onDocumentMouseMove, false)
   document.addEventListener('click', onClick, false)
+  document.addEventListener('touchstart', onTouchStart, false)
+  document.addEventListener('touchmove', onTouchMove, false)
+  document.addEventListener('touchend', onTouchEnd, false)
 
   highscore = window.localStorage.getItem('unboring.js13k.back')
   if (highscore !== null) {
@@ -304,7 +343,6 @@ function onSelectStart (event) {
 
   if (intersections.length > 0) {
     var intersection = intersections[0]
-    console.log(intersection.object)
     newWay = parseInt(intersection.object.name.substr(3, 1), 10)
   }
 }
@@ -462,11 +500,12 @@ function resetGameSettings () {
   backSpeed = 50
   cycle = 0
   round = 0
-  cyclesPerRound = 2
+  cyclesPerRound = 1
   caught = 0
   remembered = 0
   tokensStore = []
   score = 0
+  maxHints = 6
 }
 
 function showStartIcon () {
@@ -516,7 +555,7 @@ function catchingTick (delta) {
 
 function backTick (delta) {
   world.position.z -= backSpeed * delta
-  if (world.position.z < -wayLength / 2) {
+  if (world.position.z < -wayLength / 4) {
     newCycle()
   }
 }
@@ -534,6 +573,19 @@ function rememberingTick (delta) {
   }
 }
 
+function newRound () {
+  scene.background = new THREE.Color(bgColor)
+  scene.fog = new THREE.Fog(bgColor, 0, 45)
+  round += 1
+  cyclesPerRound += 1
+  gameSpeed += 1
+  cycle = 0
+  caught = 0
+  remembered = 0
+  tokensStore = []
+  newCycle()
+}
+
 function newCycle () {
   console.log(round, cycle, cyclesPerRound, caught, remembered)
   console.log(tokensStore)
@@ -549,30 +601,36 @@ function newCycle () {
     setCorrectWay()
     suffleTokens()
     setBigTokens()
-    scoreboard.visible = false
-    console.log('----2')
+    // scoreboard.visible = false
   } else if (cycle < cyclesPerRound * 2 && caught === cyclesPerRound) {
     // Back time
     gameStatus = 3
-    console.log('----3')
     var modBack = cycle % cyclesPerRound
     var indexStoredTokens = cyclesPerRound - modBack - 1
     setStoredTokens(indexStoredTokens)
   } else if (cycle >= cyclesPerRound * 2 && remembered < caught) {
     // Remembering time
+    scene.background = new THREE.Color(bgColorBack)
+    scene.fog = new THREE.Fog(bgColorBack, 0, 45)
     gameStatus = 4
-    console.log('----4')
     suffleStoredTokens(remembered)
     setCorrectRememberedWay(remembered)
+    setDefaultTheme()
     scoreboard.visible = true
+  } else if (score >= 999) {
+    gameStatus = 6
   } else {
     // Next round
-    gameStatus = 6
-    console.log('----6')
+    newRound()
+    return
   }
 
   resetAtNewCycle()
   cycle++
+}
+
+function setDefaultTheme () {
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', '#222222')
 }
 
 function setCorrectWay () {
@@ -581,7 +639,6 @@ function setCorrectWay () {
 }
 
 function setCorrectRememberedWay (index) {
-  console.log(tokensStore[index][1])
   for (var i = 0; i < tokens.children.length; i++) {
     if (tokens.children[i].name === tokensStore[index][1][0]) {
       correctWay = (tokens.children[i].position.x + 4) / 2
@@ -623,7 +680,7 @@ function suffleTokens () {
 }
 
 function setStoredTokens (index) {
-  tokens.position.z = tokensInitialPosZ
+  tokens.position.z = tokensInitialPosZ / 2
   placeStoredTokens(index)
 }
 
@@ -669,12 +726,9 @@ function showError () {
 }
 
 function solve () {
-  console.log('pre')
   if (tokens.children[actualWay].name === bigTokens.children[correctWay].name) {
-    console.log('ok')
     caught += 1
   } else {
-    console.log('ko')
     errorOnSolved = true
     showError()
   }
@@ -685,15 +739,11 @@ function solve () {
 }
 
 function solveRemembering () {
-  console.log('preRemembering')
-  console.log(actualWay, correctWay, tokens.children[actualWay].name, tokens.children[correctWay].name)
   if (tokens.children[actualWay].name === tokens.children[correctWay].name) {
-    console.log('ok rem')
     remembered += 1
     score += 1
     setScoreboard(score, false)
   } else {
-    console.log('ko rem')
     errorOnSolved = true
     showError()
   }
@@ -704,14 +754,21 @@ function solveRemembering () {
 }
 
 function postSolved () {
-  console.log('postSolved')
   bigTokens.visible = false
   tokens.visible = true
 }
 
 function endGame () {
-  highscore = score
-  window.localStorage.setItem('unboring.js13k.back', score)
+  scene.background = new THREE.Color(bgColor)
+  scene.fog = new THREE.Fog(bgColor, 0, 45)
+  hints.visible = false
+  if (score > highscore) {
+    highscore = score
+    window.localStorage.setItem('unboring.js13k.back', score)
+  }
+  setDefaultTheme()
+  rewards.visible = false
+  scoreboard.visible = true
   setScoreboard(highscore, true)
   startIcon.visible = true
 }
@@ -723,7 +780,35 @@ function toggleVRActive () {
   controller2.visible = renderer.vr.isPresenting()
 }
 //
+// Swipe on touch screens
+function onTouchStart (e) {
+  var t = e.touches[0]
+  swipe.sX = t.screenX
+  swipe.sY = t.screenY
+}
 
+function onTouchMove (e) {
+  var t = e.touches[0]
+  e.preventDefault()
+  swipe.eX = t.screenX
+  swipe.eY = t.screenY
+}
+
+function onTouchEnd (e) {
+  if ((((swipe.eX - 30 > swipe.sX) || (swipe.eX + 30 < swipe.sX)) && ((swipe.eY < swipe.sY + 60) && (swipe.sY > swipe.eY - 60) && (swipe.eX > 0)))) {
+    if (swipe.eX > swipe.sX) {
+      if (newWay > 1) {
+        newWay -= 1
+      }
+    } else {
+      if (newWay < 4) {
+        newWay += 1
+      }
+    }
+  }
+}
+
+//
 function onWindowResize () {
   camera.aspect = window.innerWidth / window.innerHeight
   camera.updateProjectionMatrix()
