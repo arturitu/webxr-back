@@ -377,8 +377,11 @@ function onSelectStart (event) {
   var intersections = getIntersections(controller)
 
   if (intersections.length > 0) {
-    var intersection = intersections[0]
-    newWay = parseInt(intersection.object.name.substr(3, 1), 10)
+    if (intersections[0].object.name === 'start') {
+      startGame()
+    } else if (intersections[0].object.name.substr(0, 3) === 'way') {
+      newWay = parseInt(intersections[0].object.name.substr(3, 1), 10)
+    }
   }
 }
 
@@ -927,7 +930,6 @@ function render () {
   var time = window.performance.now()
   var delta = (time - prevTime) / 1000
   prevTime = time
-
   if (gameStatus > 0 && gameStatus < 5) {
     gameTick(delta)
   }
