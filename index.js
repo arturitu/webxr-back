@@ -532,7 +532,7 @@ function resetGameSettings () {
   solved = false
   errorOnSolved = false
   gameSpeed = 10
-  backSpeed = 35
+  backSpeed = 50
   cycle = 0
   //   round = 0
   cyclesPerRound = 1
