@@ -73,7 +73,7 @@ var lerpSpeed = 0.9
 // 6 - max score 999
 var gameStatus = 0
 
-var solved, gameSpeed, backSpeed, cycle, round, cyclesPerRound, caught, remembered, tokensStore, errorOnSolved
+var solved, gameSpeed, backSpeed, cycle, cyclesPerRound, caught, remembered, tokensStore, errorOnSolved
 resetGameSettings()
 
 var rewards
@@ -237,7 +237,8 @@ function init () {
     token.position.y = 1.5
 
     for (var j = 0; j < hints.children.length; j++) {
-      var hintTmp = new THREE.Mesh(tokenGeometry, tokenMaterial)
+      var hintMaterialTmp = new THREE.MeshBasicMaterial()
+      var hintTmp = new THREE.Mesh(tokenGeometry, hintMaterialTmp)
       hintTmp.name = i
       hintTmp.visible = false
       hints.children[j].add(hintTmp)
@@ -497,10 +498,10 @@ function resetGameSettings () {
   solved = false
   errorOnSolved = false
   gameSpeed = 10
-  backSpeed = 50
+  backSpeed = 35
   cycle = 0
-  round = 0
-  cyclesPerRound = 1
+  //   round = 0
+  cyclesPerRound = 2
   caught = 0
   remembered = 0
   tokensStore = []
@@ -555,7 +556,7 @@ function catchingTick (delta) {
 
 function backTick (delta) {
   world.position.z -= backSpeed * delta
-  if (world.position.z < -wayLength / 4) {
+  if (world.position.z < -wayLength / 3) {
     newCycle()
   }
 }
@@ -574,11 +575,15 @@ function rememberingTick (delta) {
 }
 
 function newRound () {
-  scene.background = new THREE.Color(bgColor)
-  scene.fog = new THREE.Fog(bgColor, 0, 45)
-  round += 1
-  cyclesPerRound += 1
-  gameSpeed += 1
+//   scene.background = new THREE.Color(bgColor)
+//   scene.fog = new THREE.Fog(bgColor, 0, 45)
+  //   round += 1
+  if (cyclesPerRound === 5) {
+    gameSpeed += 5
+    cyclesPerRound = 2
+  } else {
+    cyclesPerRound += 1
+  }
   cycle = 0
   caught = 0
   remembered = 0
@@ -587,8 +592,8 @@ function newRound () {
 }
 
 function newCycle () {
-  console.log(round, cycle, cyclesPerRound, caught, remembered)
-  console.log(tokensStore)
+//   console.log(round, cycle, cyclesPerRound, caught, remembered)
+//   console.log(tokensStore)
   if (errorOnSolved) {
     // Error time
     gameStatus = 5
@@ -598,24 +603,29 @@ function newCycle () {
   if (cycle < cyclesPerRound && caught < cyclesPerRound) {
     // Catching time
     gameStatus = 2
+    setHints()
     setCorrectWay()
     suffleTokens()
     setBigTokens()
     // scoreboard.visible = false
   } else if (cycle < cyclesPerRound * 2 && caught === cyclesPerRound) {
     // Back time
+    // scene.background = new THREE.Color(bgColorBack)
+    // scene.fog = new THREE.Fog(bgColorBack, 0, 45)
     gameStatus = 3
     var modBack = cycle % cyclesPerRound
     var indexStoredTokens = cyclesPerRound - modBack - 1
     setStoredTokens(indexStoredTokens)
+    setHints()
   } else if (cycle >= cyclesPerRound * 2 && remembered < caught) {
     // Remembering time
-    scene.background = new THREE.Color(bgColorBack)
-    scene.fog = new THREE.Fog(bgColorBack, 0, 45)
+    // scene.background = new THREE.Color(bgColor)
+    // scene.fog = new THREE.Fog(bgColor, 0, 45)
     gameStatus = 4
     suffleStoredTokens(remembered)
     setCorrectRememberedWay(remembered)
     setDefaultTheme()
+    setHints()
     scoreboard.visible = true
   } else if (score >= 999) {
     gameStatus = 6
@@ -627,6 +637,54 @@ function newCycle () {
 
   resetAtNewCycle()
   cycle++
+}
+
+function setHints () {
+  for (var i = 0; i < hints.children.length; i++) {
+    if (i < cyclesPerRound) {
+      hints.children[i].visible = true
+      if (gameStatus === 2) {
+        if (tokensStore[i]) {
+          updateHint(i, tokensStore[i][1][0], tokensStore[i][1][1])
+        } else {
+          updateHint(i, 'hidden')
+        }
+      }
+      if (gameStatus === 3) {
+        var modBack = cycle % cyclesPerRound
+        var indexStoredTokens = cyclesPerRound - modBack - 1
+        if (indexStoredTokens < i) {
+          updateHint(i, 'hidden')
+        } else {
+          updateHint(i, tokensStore[i][1][0], tokensStore[i][1][1])
+        }
+      }
+      if (gameStatus === 4) {
+        if (i < remembered) {
+          updateHint(i, tokensStore[i][1][0], tokensStore[i][1][1])
+        } else {
+          updateHint(i, 'hidden')
+        }
+      }
+    } else {
+      hints.children[i].visible = false
+    }
+  }
+  hints.position.x = (((maxHints / 2) * 0.25) - (cyclesPerRound * 0.25) / 2)
+  hints.visible = true
+}
+
+function updateHint (index, name, color) {
+  for (var i = 0; i < hints.children[index].children.length; i++) {
+    if (hints.children[index].children[i].name === name) {
+      hints.children[index].children[i].visible = true
+      if (hints.children[index].children[i].name !== 'hidden') {
+        hints.children[index].children[i].material.color.set(color)
+      }
+    } else {
+      hints.children[index].children[i].visible = false
+    }
+  }
 }
 
 function setDefaultTheme () {
@@ -754,13 +812,14 @@ function solveRemembering () {
 }
 
 function postSolved () {
+  setHints()
   bigTokens.visible = false
   tokens.visible = true
 }
 
 function endGame () {
-  scene.background = new THREE.Color(bgColor)
-  scene.fog = new THREE.Fog(bgColor, 0, 45)
+//   scene.background = new THREE.Color(bgColor)
+//   scene.fog = new THREE.Fog(bgColor, 0, 45)
   hints.visible = false
   if (score > highscore) {
     highscore = score
