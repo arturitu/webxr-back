@@ -88,6 +88,8 @@ var swipe = {
   eY: 0
 }
 
+var playPlane, rewPlane
+
 init()
 animate()
 
@@ -128,8 +130,8 @@ function init () {
   var test = new THREE.MeshBasicMaterial({
     color: wayColor
   })
-  startIcon = new THREE.Mesh(new THREE.CircleBufferGeometry(0.35, 0), test)
-  startIcon.position.set(0, 1.5, -5)
+  startIcon = new THREE.Mesh(new THREE.CircleBufferGeometry(0.7, 0), test)
+  startIcon.position.set(0, 1.2, -5)
   startIcon.visible = false
   startIcon.name = 'start'
   scene.add(startIcon)
@@ -318,6 +320,22 @@ function init () {
 
   controller1.add(line.clone())
   controller2.add(line.clone())
+
+  // Play and Rewind provisional planes
+  var planeGeometry = new THREE.PlaneBufferGeometry(2, 0.5)
+  var texturePlay = new THREE.TextureLoader().load('images/play.png')
+  var playMaterial = new THREE.MeshBasicMaterial({ map: texturePlay, transparent: true })
+  playPlane = new THREE.Mesh(planeGeometry, playMaterial)
+  playPlane.position.set(0, 1.5, -5)
+  playPlane.visible = false
+  scene.add(playPlane)
+
+  var textureRew = new THREE.TextureLoader().load('images/rew.png')
+  var rewMaterial = new THREE.MeshBasicMaterial({ map: textureRew, transparent: true })
+  rewPlane = new THREE.Mesh(planeGeometry, rewMaterial)
+  rewPlane.position.set(0, 1.5, -5)
+  rewPlane.visible = false
+  scene.add(rewPlane)
 
   window.addEventListener('resize', onWindowResize, false)
   document.addEventListener('mousemove', onDocumentMouseMove, false)
@@ -517,7 +535,7 @@ function resetGameSettings () {
   backSpeed = 35
   cycle = 0
   //   round = 0
-  cyclesPerRound = 2
+  cyclesPerRound = 1
   caught = 0
   remembered = 0
   tokensStore = []
@@ -596,7 +614,7 @@ function newRound () {
   //   round += 1
   if (cyclesPerRound === 5) {
     gameSpeed += 5
-    cyclesPerRound = 2
+    cyclesPerRound = 1
   } else {
     cyclesPerRound += 1
   }
@@ -618,6 +636,8 @@ function newCycle () {
   }
   if (cycle < cyclesPerRound && caught < cyclesPerRound) {
     // Catching time
+    playPlane.visible = false
+    rewPlane.visible = false
     gameStatus = 2
     setHints()
     setCorrectWay()
@@ -627,6 +647,8 @@ function newCycle () {
     // scoreboard.visible = false
   } else if (cycle < cyclesPerRound * 2 && caught === cyclesPerRound) {
     // Back time
+    playPlane.visible = false
+    rewPlane.visible = true
     scene.background = new THREE.Color(bgColorBack)
     scene.fog = new THREE.Fog(bgColorBack, 0, 45)
     gameStatus = 3
@@ -636,6 +658,8 @@ function newCycle () {
     setHints()
   } else if (cycle >= cyclesPerRound * 2 && remembered < caught) {
     // Remembering time
+    playPlane.visible = true
+    rewPlane.visible = false
     scoreMaterial.color.set(scoreColor)
     scene.background = new THREE.Color(bgColor)
     scene.fog = new THREE.Fog(bgColor, 0, 45)
@@ -836,6 +860,8 @@ function postSolved () {
 }
 
 function endGame () {
+  playPlane.visible = false
+  rewPlane.visible = false
   scene.background = new THREE.Color(bgColor)
   scene.fog = new THREE.Fog(bgColor, 0, 45)
   hints.visible = false
@@ -872,9 +898,9 @@ function onTouchMove (e) {
 }
 
 function onTouchEnd (e) {
-  if ((((swipe.eX - 30 > swipe.sX) || (swipe.eX + 30 < swipe.sX)) && ((swipe.eY < swipe.sY + 60) && (swipe.sY > swipe.eY - 60) && (swipe.eX > 0)))) {
+  if ((((swipe.eX - 60 > swipe.sX) || (swipe.eX + 60 < swipe.sX)) && ((swipe.eY < swipe.sY + 60) && (swipe.sY > swipe.eY - 60) && (swipe.eX > 0)))) {
     if (swipe.eX > swipe.sX) {
-      if (newWay > 1) {
+      if (newWay > 0) {
         newWay -= 1
       }
     } else {
