@@ -15,16 +15,16 @@ var intersection = null
 var isVRActive = false
 
 // var bgColor = 0xdeb307;
-var bgColor = 0x222222
-var bgColorBack = 0x232323
+var bgColor = 0x111111
+var bgColorBack = 0x121212
 
 var world
 
 var startIcon
 
 var ways = []
-var wayColor = 0x333333
-var wayColorOver = 0x444444
+var wayColor = 0x555555
+var wayColorOver = 0x666666
 var wayLength = 200
 var tokensInitialPosZ = 50
 var actualWay = 2
@@ -90,6 +90,8 @@ var swipe = {
 
 var playPlane, rewPlane
 
+var iOS = !!navigator.platform && /iPad|iPhone|iPod/.test(navigator.platform)
+
 init()
 animate()
 
@@ -138,7 +140,7 @@ function init () {
   // reward
   rewards = new THREE.Group()
   var rewardMaterial = new THREE.LineBasicMaterial({ color: 0xffffff })
-  for (var i = 0; i < 5; i++) {
+  for (i = 0; i < 5; i++) {
     var rewardGeometry
     switch (i) {
       case 0:
@@ -429,8 +431,8 @@ function setDigit (group, val) {
 function onDocumentMouseMove (event) {
   event.preventDefault()
   if (!event.targetTouches) {
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
+    mouse.x = (event.pageX / window.innerWidth) * 2 - 1
+    mouse.y = -(event.pageY / window.innerHeight) * 2 + 1
 
     doFallbackRaycast()
   }
@@ -438,9 +440,13 @@ function onDocumentMouseMove (event) {
 
 function onClick (event) {
   event.preventDefault()
-
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
+  if (event.touches && iOS) {
+    mouse.x = (event.pageX / window.innerWidth) * 2 - 1
+    mouse.y = -(event.pageY / window.innerHeight) * 2 + 1
+  } else {
+    mouse.x = (event.pageX / window.innerWidth) * 2 - 1
+    mouse.y = -(event.pageY / window.innerHeight) * 2 + 1
+  }
 
   doFallbackRaycast()
 
@@ -910,6 +916,10 @@ function onTouchEnd (e) {
       if (newWay < 4) {
         newWay += 1
       }
+    }
+  } else {
+    if (iOS) {
+      onClick(e)
     }
   }
 }
