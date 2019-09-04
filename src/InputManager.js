@@ -154,14 +154,12 @@ module.exports = class InputManager {
   // Touch screen methods
   // Swipe on touch screens
   onTouchStart (e) {
-    console.log('---start')
     var t = e.touches[0]
     this.swipe.sX = t.screenX
     this.swipe.sY = t.screenY
   }
 
   onTouchMove (e) {
-    console.log('---move')
     var t = e.touches[0]
     // e.preventDefault()
     this.swipe.eX = t.screenX
@@ -169,7 +167,6 @@ module.exports = class InputManager {
   }
 
   onTouchEnd (e) {
-    console.log('---')
     if ((((this.swipe.eX - 60 > this.swipe.sX) || (this.swipe.eX + 60 < this.swipe.sX)) && ((this.swipe.eY < this.swipe.sY + 60) && (this.swipe.sY > this.swipe.eY - 60) && (this.swipe.eX > 0)))) {
       if (this.swipe.eX > this.swipe.sX) {
         this.app.emit('wayLeft')

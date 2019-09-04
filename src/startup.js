@@ -5,6 +5,7 @@ import Scoreboard from './Scoreboard'
 
 import InputManager from './InputManager'
 import GameManager from './GameManager'
+import Synth from './Synth'
 
 module.exports = function () {
   app.inputManager = new InputManager()
@@ -19,4 +20,6 @@ module.exports = function () {
     rewards: rewards,
     scoreboard: scoreboard
   })
+  const synth = new Synth()
+  app.synth = synth
 }

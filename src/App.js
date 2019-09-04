@@ -62,6 +62,7 @@ export default class App extends EventEmitter {
     }
 
     this.gameManager.update(delta)
+    this.synth.update(delta)
 
     this.renderer.render(this.scene, this.camera)
   }

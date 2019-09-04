@@ -6,6 +6,8 @@ export default class Ways extends THREE.Group {
     super()
     this.app = app
     this.addWays()
+    this.app.on('startgame', this.startgame.bind(this))
+    this.app.on('endgame', this.endgame.bind(this))
   }
 
   addWays () {
@@ -18,8 +20,20 @@ export default class Ways extends THREE.Group {
       way.position.x = (i * 2) - 4
       way.position.y = 0.1
       way.position.z = 0
-      this.app.inputManager.addCollider(way)
+      // this.app.inputManager.addCollider(way)
       this.add(way)
+    }
+  }
+
+  startgame () {
+    for (let i = 0; i < this.children.length; i++) {
+      this.app.inputManager.addCollider(this.children[i])
+    }
+  }
+
+  endgame () {
+    for (let i = 0; i < this.children.length; i++) {
+      this.app.inputManager.removeCollider(this.children[i])
     }
   }
 

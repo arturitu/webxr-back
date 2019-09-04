@@ -57,13 +57,13 @@ module.exports = class GameManager {
 
   wayLeft () {
     if (this.newWay > 0) {
-      this.newWay -= 1
+      this.app.emit('wayChanged', this.newWay - 1)
     }
   }
 
   wayRight () {
     if (this.newWay < 4) {
-      this.newWay += 1
+      this.app.emit('wayChanged', this.newWay + 1)
     }
   }
 
@@ -105,6 +105,7 @@ module.exports = class GameManager {
     if (this.errorOnSolved) {
       // Error time
       this.gameStatus = 5
+      this.app.emit('wayChanged', 2)
       this.endgame()
       return
     }
@@ -132,6 +133,7 @@ module.exports = class GameManager {
       this.app.emit('setHints', this.tokensStore, this.gameStatus, this.cycle, this.cyclesPerRound, this.remembered)
     } else if (this.cycle >= this.cyclesPerRound * 2 && this.remembered < this.caught) {
       // Remembering time
+      console.log('...')
       this.app.emit('play')
       this.app.scene.background = new THREE.Color(Config.bgColor)
       this.app.scene.fog = new THREE.Fog(Config.bgColor, 0, 45)
@@ -277,6 +279,7 @@ module.exports = class GameManager {
 
   endgame () {
     this.app.emit('endgame')
+    this.app.emit('wayChanged', 2)
     this.app.scene.background = new THREE.Color(Config.bgColor)
     this.app.scene.fog = new THREE.Fog(Config.bgColor, 0, 45)
     if (this.score > Number(this.highscore)) {
