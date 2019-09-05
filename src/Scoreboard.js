@@ -4,6 +4,7 @@ import Hints from './Hints'
 import BigTokens from './BigTokens'
 import Score from './Score'
 import PlayRewPanels from './PlayRewPanels'
+import AudioBtn from './AudioBtn'
 
 export default class Scoreboard extends THREE.Group {
   constructor () {
@@ -33,6 +34,10 @@ export default class Scoreboard extends THREE.Group {
     this.playRewPanels.position.set(0, 0.5, 0)
     this.playRewPanels.visible = false
     this.add(this.playRewPanels)
+
+    this.audioBtn = new AudioBtn()
+    this.audioBtn.position.set(0, 2.25, 0)
+    this.add(this.audioBtn)
 
     this.app.on('startgame', this.startgame.bind(this))
     this.app.on('endgame', this.endgame.bind(this))

@@ -91,6 +91,8 @@ module.exports = class InputManager {
     if (intersections.length > 0) {
       if (intersections[0].object.name === 'start') {
         this.app.emit('startgame')
+      } else if (intersections[0].object.name === 'audio') {
+        this.app.emit('shuffleAudio')
       } else if (intersections[0].object.name.substr(0, 3) === 'way') {
         const newWay = parseInt(intersections[0].object.name.substr(3, 1), 10)
         this.app.emit('wayChanged', newWay)
@@ -131,6 +133,8 @@ module.exports = class InputManager {
     if (this.intersected.length) {
       if (this.intersected[0].name === 'start') {
         this.app.emit('startgame')
+      } else if (this.intersected[0].name === 'audio') {
+        this.app.emit('shuffleAudio')
       } else if (this.intersected[0].name.substr(0, 3) === 'way') {
         const newWay = parseInt(this.intersected[0].name.substr(3, 1), 10)
         this.app.emit('wayChanged', newWay)
@@ -146,7 +150,9 @@ module.exports = class InputManager {
     this.intersection = (intersections.length) > 0 ? intersections[0] : null
     if (this.intersection !== null) {
       var object = this.intersection.object
-      object.material.color.set(Config.wayColorOver)
+      if (object.name !== 'audio') {
+        object.material.color.set(Config.wayColorOver)
+      }
       this.intersected.push(object)
     }
   }
@@ -202,7 +208,9 @@ module.exports = class InputManager {
       var intersection = intersections[0]
 
       var object = intersection.object
-      object.material.color.set(Config.wayColorOver)
+      if (object.name !== 'audio') {
+        object.material.color.set(Config.wayColorOver)
+      }
       this.intersected.push(object)
 
       line.scale.z = intersection.distance
@@ -214,7 +222,9 @@ module.exports = class InputManager {
   cleanIntersected () {
     while (this.intersected.length) {
       var object = this.intersected.pop()
-      object.material.color.set(Config.wayColor)
+      if (object.name !== 'audio') {
+        object.material.color.set(Config.wayColor)
+      }
     }
   }
 

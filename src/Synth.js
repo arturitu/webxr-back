@@ -7,7 +7,9 @@ module.exports = class Synth {
     this.app = app
 
     window.AudioContext = window.AudioContext || window.webkitAudioContext
-
+    if (!this.audioContext) {
+      this.audioContext = new AudioContext()
+    }
     this.gameActive = false
     this.actualTempo = 0.3
     this.backTempo = 0.1
@@ -15,7 +17,7 @@ module.exports = class Synth {
     this.counter = 0
 
     // Made based on with https://xem.github.io/miniMusic/
-    this.loopSeq = [14, 14, 0, 0, 12, 12, 0, 0, 11, 11, 0, 0, 12, 12, 0, 14, 12, 11, 12, 0, 0, 9, 8, 7, 0, 7, 0, 7, 0, 7, 0, 0]
+    this.loopSeq = [0, 0, 14, 14, 0, 0, 12, 12, 0, 0, 11, 11, 0, 0, 12, 12, 0, 14, 12, 11, 12, 0, 0, 9, 8, 7, 0, 7, 0, 7, 0, 7, 0, 0]
     this.reverseSeq = this.loopSeq.slice(0).reverse()
     this.errorSeq = [0, 16, 17, 19, 19, 0]
     this.okSeq = [0, 2, 0]
@@ -24,6 +26,12 @@ module.exports = class Synth {
     this.activeSeq = []
     this.sequencePoint = 0
     this.actualLoopPoint = 0
+
+    if (!window.localStorage.getItem('unboring.js13k.back.audio')) {
+      this.audioActive = 'false'
+    } else {
+      this.audioActive = window.localStorage.getItem('unboring.js13k.back.audio')
+    }
 
     this.app.on('startgame', this.startgame.bind(this))
     this.app.on('endgame', this.endgame.bind(this))
@@ -34,9 +42,28 @@ module.exports = class Synth {
     this.app.on('play', this.playEvent.bind(this))
     this.app.on('rew', this.rew.bind(this))
     this.app.on('speedChanged', this.speedChanged.bind(this))
+    this.app.on('shuffleAudio', this.shuffleAudio.bind(this))
+  }
+
+  shuffleAudio () {
+    if (this.audioActive === 'true') {
+      this.audioActive = 'false'
+    } else {
+      this.audioActive = 'true'
+    }
   }
 
   startgame () {
+    const osc4 = this.audioContext.createOscillator()
+    if (this.audioActive === 'true') {
+      osc4.frequency.value = 440 * 1.06 ** (12 - 5)
+    } else {
+      console.log(this.audioActive)
+      osc4.frequency.value = 0
+    }
+    osc4.connect(this.audioContext.destination)
+    osc4.start(this.audioContext.currentTime)
+    osc4.stop(this.audioContext.currentTime + this.actualTempo)
     this.gameActive = true
     this.activeSeq = this.loopSeq
     this.sequencePoint = 0
@@ -49,7 +76,6 @@ module.exports = class Synth {
 
   speedChanged (newSpeed) {
     this.actualTempo = 0.3 - Math.min(0.2, newSpeed / 200)
-    console.log(this.actualTempo)
     this.tempo = this.actualTempo
   }
 
@@ -77,9 +103,6 @@ module.exports = class Synth {
   }
 
   playNote (v) {
-    if (!this.audioContext) {
-      this.audioContext = new AudioContext()
-    }
     const osc4 = this.audioContext.createOscillator()
     osc4.frequency.value = 440 * 1.06 ** (12 - v)
     osc4.connect(this.audioContext.destination)
@@ -88,9 +111,13 @@ module.exports = class Synth {
   }
 
   tick () {
+    if (this.audioActive === 'false') {
+      return
+    }
     if (this.sequencePoint < this.activeSeq.length) {
       if (this.activeSeq[this.sequencePoint]) {
         this.playNote(this.activeSeq[this.sequencePoint])
+        this.app.emit('synth', this.activeSeq[this.sequencePoint])
       }
       this.sequencePoint += 1
     } else {
