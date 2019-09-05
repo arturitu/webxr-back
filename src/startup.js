@@ -6,6 +6,7 @@ import Scoreboard from './Scoreboard'
 import InputManager from './InputManager'
 import GameManager from './GameManager'
 import Synth from './Synth'
+import Sky from './Sky'
 
 module.exports = function () {
   app.inputManager = new InputManager()
@@ -22,4 +23,6 @@ module.exports = function () {
   })
   const synth = new Synth()
   app.synth = synth
+  const sky = new Sky()
+  app.scene.add(sky)
 }
