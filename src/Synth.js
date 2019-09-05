@@ -25,7 +25,6 @@ module.exports = class Synth {
     this.sequencePoint = 0
     this.actualLoopPoint = 0
 
-    this.app.on('wayChanged', this.wayChanged.bind(this))
     this.app.on('startgame', this.startgame.bind(this))
     this.app.on('endgame', this.endgame.bind(this))
     this.app.on('solveOK', this.solveOK.bind(this))
@@ -34,9 +33,7 @@ module.exports = class Synth {
     this.app.on('solveRememberingERROR', this.solveERROR.bind(this))
     this.app.on('play', this.playEvent.bind(this))
     this.app.on('rew', this.rew.bind(this))
-  }
-
-  wayChanged (newWay) {
+    this.app.on('speedChanged', this.speedChanged.bind(this))
   }
 
   startgame () {
@@ -48,6 +45,12 @@ module.exports = class Synth {
   endgame () {
     this.gameActive = false
     this.activeSeq = []
+  }
+
+  speedChanged (newSpeed) {
+    this.actualTempo = 0.3 - Math.min(0.2, newSpeed / 200)
+    console.log(this.actualTempo)
+    this.tempo = this.actualTempo
   }
 
   solveOK () {
@@ -62,12 +65,10 @@ module.exports = class Synth {
   }
 
   playEvent () {
-    console.log('play')
     this.tempo = this.actualTempo
   }
 
   rew () {
-    console.log('rew')
     this.tempo = this.backTempo
     this.activeSeq = this.reverseSeq
     if (this.activeSeq !== this.reverseSeq) {

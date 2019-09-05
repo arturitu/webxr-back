@@ -71,6 +71,7 @@ module.exports = class GameManager {
     this.solved = false
     this.errorOnSolved = false
     this.gameSpeed = 10
+    this.app.emit('speedChanged', this.gameSpeed)
     this.backSpeed = 50
     this.cycle = 0
     this.cyclesPerRound = 1
@@ -89,11 +90,15 @@ module.exports = class GameManager {
     this.app.scene.background = new THREE.Color(Config.bgColor)
     this.app.scene.fog = new THREE.Fog(Config.bgColor, 0, 45)
     if (this.cyclesPerRound === 5) {
-      this.gameSpeed += 5
       this.cyclesPerRound = 1
     } else {
       this.cyclesPerRound += 1
     }
+    this.gameSpeed += 1
+    if (this.gameSpeed > 40) {
+      this.gameSpeed = 40
+    }
+    this.app.emit('speedChanged', this.gameSpeed)
     this.cycle = 0
     this.caught = 0
     this.remembered = 0
@@ -133,7 +138,6 @@ module.exports = class GameManager {
       this.app.emit('setHints', this.tokensStore, this.gameStatus, this.cycle, this.cyclesPerRound, this.remembered)
     } else if (this.cycle >= this.cyclesPerRound * 2 && this.remembered < this.caught) {
       // Remembering time
-      console.log('...')
       this.app.emit('play')
       this.app.scene.background = new THREE.Color(Config.bgColor)
       this.app.scene.fog = new THREE.Fog(Config.bgColor, 0, 45)
@@ -219,7 +223,8 @@ module.exports = class GameManager {
   }
 
   setDefaultTheme () {
-    document.querySelector('meta[name="theme-color"]').setAttribute('content', Config.bgColorBack)
+    var hexStr = '#' + Config.bgColorBack.toString(16)
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', hexStr)
   }
 
   setCorrectWay () {
