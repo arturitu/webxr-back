@@ -1,22 +1,29 @@
 precision highp float;
 
-uniform float sineTime;
 uniform mat4 modelViewMatrix;
 uniform mat4 projectionMatrix;
 
 attribute vec3 position;
 attribute vec3 offset;
-attribute vec4 color;
-attribute vec4 orientationStart;
-attribute vec4 orientationEnd;
+attribute vec2 uv;
+attribute vec4 orientation;
+attribute vec3 scale;
+
 varying vec3 vPosition;
 varying vec4 vColor;
 
-void main(){
-	vPosition = offset * max( abs( sineTime * 2.0 + 1.0 ), 0.5 ) + position;
-	vec4 orientation = normalize( mix( orientationStart, orientationEnd, sineTime ) );
-	vec3 vcV = cross( orientation.xyz, vPosition );
-	vPosition = vcV * ( 2.0 * orientation.w ) + ( cross( orientation.xyz, vcV ) * 2.0 + vPosition );
-	vColor = color;
-	gl_Position = projectionMatrix * modelViewMatrix * vec4( vPosition, 1.0 );
+vec3 applyQuaternionToVector( vec4 q, vec3 v ){
+
+	return v + 2.0 * cross( q.xyz, cross( q.xyz, v ) + q.w * v );
+
+}
+
+void main() {
+
+	
+	vColor = vec4 (1.0,1.0,1.0,1.0);
+	
+	vPosition = applyQuaternionToVector( orientation, position*scale );
+	gl_Position = projectionMatrix * modelViewMatrix * vec4( offset + vPosition, 1.0 );
+
 }

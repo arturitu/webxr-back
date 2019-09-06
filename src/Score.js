@@ -20,7 +20,8 @@ export default class Score extends THREE.Group {
     this.context.fillText(this.actualScore, this.canvas.width / 2, this.canvas.height / 2 + 32)
 
     this.material = new THREE.MeshBasicMaterial({
-      transparent: true
+      transparent: true,
+      depthTest: false
     })
     this.material.map = new THREE.CanvasTexture(this.canvas)
     this.plane = new THREE.Mesh(new THREE.PlaneBufferGeometry(4, 1), this.material)
