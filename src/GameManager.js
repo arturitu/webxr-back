@@ -42,6 +42,8 @@ module.exports = class GameManager {
     this.app.on('solveERROR', this.solveERROR.bind(this))
     this.app.on('solveRememberingOK', this.solveRememberingOK.bind(this))
     this.app.on('solveRememberingERROR', this.solveRememberingERROR.bind(this))
+
+    this.setDefaultTheme()
   }
 
   startgame () {
@@ -128,8 +130,6 @@ module.exports = class GameManager {
     } else if (this.cycle < this.cyclesPerRound * 2 && this.caught === this.cyclesPerRound) {
       // Back time
       this.app.emit('rew')
-      this.app.scene.background = new THREE.Color(Config.bgColorBack)
-      this.app.scene.fog = new THREE.Fog(Config.bgColorBack, 0, 45)
       this.gameStatus = 3
       var modBack = this.cycle % this.cyclesPerRound
       var indexStoredTokens = this.cyclesPerRound - modBack - 1
@@ -139,8 +139,6 @@ module.exports = class GameManager {
     } else if (this.cycle >= this.cyclesPerRound * 2 && this.remembered < this.caught) {
       // Remembering time
       this.app.emit('play')
-      this.app.scene.background = new THREE.Color(Config.bgColor)
-      this.app.scene.fog = new THREE.Fog(Config.bgColor, 0, 45)
       this.gameStatus = 4
 
       this.app.emit('shuffleStoredTokens')
@@ -223,7 +221,7 @@ module.exports = class GameManager {
   }
 
   setDefaultTheme () {
-    var hexStr = '#' + Config.bgColorBack.toString(16)
+    var hexStr = '#' + Config.bgColorTop.toString(16)
     document.querySelector('meta[name="theme-color"]').setAttribute('content', hexStr)
   }
 

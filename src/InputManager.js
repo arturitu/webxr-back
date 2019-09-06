@@ -150,9 +150,7 @@ module.exports = class InputManager {
     this.intersection = (intersections.length) > 0 ? intersections[0] : null
     if (this.intersection !== null) {
       var object = this.intersection.object
-      if (object.name !== 'audio') {
-        object.material.color.set(Config.wayColorOver)
-      }
+      object.material.opacity = 0.5
       this.intersected.push(object)
     }
   }
@@ -208,9 +206,7 @@ module.exports = class InputManager {
       var intersection = intersections[0]
 
       var object = intersection.object
-      if (object.name !== 'audio') {
-        object.material.color.set(Config.wayColorOver)
-      }
+      object.material.opacity = 0.5
       this.intersected.push(object)
 
       line.scale.z = intersection.distance
@@ -221,10 +217,8 @@ module.exports = class InputManager {
 
   cleanIntersected () {
     while (this.intersected.length) {
-      var object = this.intersected.pop()
-      if (object.name !== 'audio') {
-        object.material.color.set(Config.wayColor)
-      }
+      const object = this.intersected.pop()
+      object.material.opacity = 0.25
     }
   }
 

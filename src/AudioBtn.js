@@ -20,7 +20,8 @@ export default class PlayRewPanels extends THREE.Group {
     this.context.strokeStyle = this.hexStr
     this.context.lineWidth = 6
     this.material = new THREE.MeshBasicMaterial({
-      transparent: true
+      transparent: true,
+      opacity: 0.25
     })
     this.material.map = new THREE.CanvasTexture(this.canvas)
     this.plane = new THREE.Mesh(new THREE.PlaneBufferGeometry(1, 0.25), this.material)

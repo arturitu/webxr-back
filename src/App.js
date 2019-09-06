@@ -19,8 +19,7 @@ export default class App extends EventEmitter {
     document.body.appendChild(THREE.WEBVR.createButton(this.renderer, { referenceSpaceType: 'local' }))
 
     this.scene = new THREE.Scene()
-    // this.scene.background = new THREE.Color(Config.bgColor)
-    this.scene.fog = new THREE.Fog(0xBC483E, 0, 45)
+    this.scene.fog = new THREE.Fog(Config.bgColor, 0, 45)
 
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
     this.camera.layers.enable(1)
