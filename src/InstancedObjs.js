@@ -54,9 +54,11 @@ export default class InstancedObjs extends THREE.Group {
     var scales = []
 
     var vector = new THREE.Vector4()
-    var x, y, z, w
+    var x, y, z
 
-    for (var i = 0; i < 500; i++) {
+    this.actualSpeed = 10
+    this.totalObjs = 300
+    for (var i = 0; i < this.totalObjs; i++) {
       // offsets
 
       let tmpVal = 1
@@ -64,9 +66,8 @@ export default class InstancedObjs extends THREE.Group {
         tmpVal = -1
       }
       x = 15 * tmpVal
-      y = Math.floor(Math.random() * 15) * (Math.random() * 5) - 15
+      y = Math.floor(Math.random() * 15) * (Math.random() * 5) - 4
       z = Math.floor(Math.random() * 200 - 100)
-
       vector.set(x, y, z, 0).normalize()
       offsets.push(x, y, z)
 
@@ -79,8 +80,8 @@ export default class InstancedObjs extends THREE.Group {
       scales.push(1, 1, 1)
     }
 
-    this.scaleAttribute = new THREE.InstancedBufferAttribute(new Float32Array(scales), 3)
-    this.offsetAttribute = new THREE.InstancedBufferAttribute(new Float32Array(offsets), 3)
+    this.scaleAttribute = new THREE.InstancedBufferAttribute(new Float32Array(scales), 3).setDynamic(true)
+    this.offsetAttribute = new THREE.InstancedBufferAttribute(new Float32Array(offsets), 3).setDynamic(true)
     this.orientationAttribute = new THREE.InstancedBufferAttribute(new Float32Array(orientations), 4)
 
     geometry.addAttribute('offset', this.offsetAttribute)
@@ -100,8 +101,17 @@ export default class InstancedObjs extends THREE.Group {
     var scaleSin = (Math.sin(time) + 1) / 2
     for (var i = 0, il = this.scaleAttribute.count; i < il; i++) {
       // this.currentVector.fromArray(this.scaleAttribute.array, (i * 3))
-      this.scaleAttribute.setXYZ(i, scaleSin * (3 + (i / 100)), 0.2, 1)
+      // this.scaleAttribute.setXYZ(i, scaleSin * (3 + (i / 100)), 0.2, 1)
+      this.scaleAttribute.setXYZ(i, (3 + (i / 100)), 0.2, 1)
+      if (this.offsetAttribute.getZ(i) > 100) {
+        this.offsetAttribute.setZ(i, -100)
+      } else if (this.offsetAttribute.getZ(i) < -100) {
+        this.offsetAttribute.setZ(i, 100)
+      } else {
+        this.offsetAttribute.setZ(i, this.offsetAttribute.getZ(i) + (this.actualSpeed * 10 / ((this.totalObjs - i / 5) + (i / 50))))
+      }
     }
     this.scaleAttribute.needsUpdate = true
+    this.offsetAttribute.needsUpdate = true
   }
 }
