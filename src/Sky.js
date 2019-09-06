@@ -19,8 +19,8 @@ export default class Sky extends THREE.Group {
         side: THREE.BackSide
       }
     )
-    this.shepre = new THREE.Mesh(geometry, material)
-    this.add(this.shepre)
+    this.shpere = new THREE.Mesh(geometry, material)
+    this.add(this.shpere)
     this.app = app
     this.app.on('resetAtNewCycle', this.resetAtNewCycle.bind(this))
   }

@@ -7,6 +7,7 @@ import InputManager from './InputManager'
 import GameManager from './GameManager'
 import Synth from './Synth'
 import Sky from './Sky'
+import InstancedObjs from './InstancedObjs'
 
 module.exports = function () {
   app.inputManager = new InputManager()
@@ -25,4 +26,6 @@ module.exports = function () {
   app.synth = synth
   const sky = new Sky()
   app.scene.add(sky)
+  const instancedObjs = new InstancedObjs()
+  app.scene.add(instancedObjs)
 }
