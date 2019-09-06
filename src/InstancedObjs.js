@@ -3,6 +3,7 @@ import fragmentShader from './shaders/instancing.frag'
 
 import { app } from './context'
 import Config from './Config'
+import Utils from './Utils'
 
 export default class InstancedObjs extends THREE.Group {
   constructor () {
@@ -15,6 +16,7 @@ export default class InstancedObjs extends THREE.Group {
     }
 
     this.currentVector = new THREE.Vector3()
+    this.audioDistortion = 0
     const geometry = this.getGeometry()
     const material = new THREE.RawShaderMaterial({
       uniforms: {
@@ -40,9 +42,17 @@ export default class InstancedObjs extends THREE.Group {
     })
     this.mesh = new THREE.Mesh(geometry, material)
     this.add(this.mesh)
+
+    this.changingColor = false
+    this.count = 0
+    this.prevFogColor = 0
+    this.fogColor = 0
+
     this.app.on('resetAtNewCycle', this.resetAtNewCycle.bind(this))
     this.app.on('speedChanged', this.speedChanged.bind(this))
     this.app.on('changedToBackSpeed', this.changedToBackSpeed.bind(this))
+    this.app.on('synth', this.synth.bind(this))
+    this.app.on('colorChanged', this.colorChanged.bind(this))
   }
 
   getGeometry () {
@@ -107,14 +117,38 @@ export default class InstancedObjs extends THREE.Group {
     this.actualSpeed = -val
   }
 
+  synth (val) {
+    this.audioDistortion = val
+  }
+
+  colorChanged (val, isDefault) {
+    this.changingColor = true
+    this.endColor = val
+    this.prevFogColor = this.mesh.material.uniforms.fogColor.value.getHex()
+    if (isDefault) {
+      this.fogColor = Config.defaultColorArr[2]
+    } else {
+      for (let i = 0; i < Config.colorArr.length; i++) {
+        if (Config.colorArr[i][0] === val) {
+          this.fogColor = Config.colorArr[i][2]
+        }
+      }
+    }
+  }
+
+  updateColors () {
+    this.transitionFogColor = new THREE.Color(Utils.blendColors(this.prevFogColor, this.fogColor, this.count))
+    this.mesh.material.uniforms.fogColor.value = this.transitionFogColor
+    this.app.scene.fog.color = this.transitionFogColor
+  }
+
+  colorTransitionEnds () {
+    this.changingColor = false
+    this.count = 0
+  }
+
   update (dt = 0, time = 0) {
-    // console.log(this.app.renderer.info.render.calls)
-    // this.mesh.material.uniforms.time.value = time
-    // this.mesh.material.uniforms.sineTime.value = Math.sin(this.mesh.material.uniforms.time.value)
-    var scaleSin = (Math.sin(time) + 1) / 2
     for (var i = 0, il = this.scaleAttribute.count; i < il; i++) {
-      // this.currentVector.fromArray(this.scaleAttribute.array, (i * 3))
-      // this.scaleAttribute.setXYZ(i, scaleSin * (3 + (i / 100)), 0.2, 1)
       this.scaleAttribute.setXYZ(i, (3 + (i / 100)), 0.05, 1)
       if (this.offsetAttribute.getZ(i) > 100) {
         this.offsetAttribute.setZ(i, -100)
@@ -126,5 +160,13 @@ export default class InstancedObjs extends THREE.Group {
     }
     this.scaleAttribute.needsUpdate = true
     this.offsetAttribute.needsUpdate = true
+
+    if (this.changingColor) {
+      this.count += dt / 10 * Config.transitionSpeed
+      this.updateColors()
+      if (this.count >= 1) {
+        this.colorTransitionEnds()
+      }
+    }
   }
 }

@@ -63,7 +63,7 @@ export default class Tokens extends THREE.Group {
     Utils.shuffle(this.children)
     for (var i = 0; i < this.children.length; i++) {
       this.children[i].position.x = i * 2 - 4
-      var tmpColor = Config.colorArr[i]
+      var tmpColor = Config.colorArr[i][0]
       this.children[i].material.color.set(tmpColor)
     }
     this.app.emit('tokensShuffled', this.children)

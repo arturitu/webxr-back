@@ -22,7 +22,9 @@ export default class BigTokens extends THREE.Group {
       if (this.children[i].name === correctWay) {
         this.children[i].visible = true
         var hexStr = '#' + this.children[i].material.color.getHexString()
-        document.querySelector('meta[name="theme-color"]').setAttribute('content', hexStr)
+        console.log(hexStr)
+        this.app.emit('colorChanged', this.children[i].material.color.getHex(), false)
+        // document.querySelector('meta[name="theme-color"]').setAttribute('content', hexStr)
         this.app.emit('setCorrectName', this.children[i].name)
       } else {
         this.children[i].visible = false

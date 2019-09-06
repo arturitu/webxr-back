@@ -61,7 +61,7 @@ export default class PlayRewPanels extends THREE.Group {
   on () {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height)
     this.context.beginPath()
-    this.context.fillText('AUDIO ON', this.canvas.width / 2, this.canvas.height / 2 + 16)
+    this.context.fillText('AUDIO·ON', this.canvas.width / 2, this.canvas.height / 2 + 16)
     this.context.moveTo(36, 60)
     this.context.lineTo(220, 60)
     this.context.stroke()
@@ -72,7 +72,7 @@ export default class PlayRewPanels extends THREE.Group {
   off () {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height)
     this.context.beginPath()
-    this.context.fillText('AUDIO OFF', this.canvas.width / 2, this.canvas.height / 2 + 16)
+    this.context.fillText('AUDIO-OFF', this.canvas.width / 2, this.canvas.height / 2 + 16)
     this.context.moveTo(30, 60)
     this.context.lineTo(226, 10)
     this.context.stroke()

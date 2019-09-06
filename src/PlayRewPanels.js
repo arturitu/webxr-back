@@ -30,7 +30,7 @@ export default class PlayRewPanels extends THREE.Group {
 
   play () {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height)
-    this.context.fillText('PLAY |·', this.canvas.width / 2, this.canvas.height / 2 + 32)
+    this.context.fillText('REPLAY |·', this.canvas.width / 2, this.canvas.height / 2 + 32)
     this.material.map.needsUpdate = true
     this.visible = true
   }

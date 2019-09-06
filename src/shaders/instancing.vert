@@ -9,7 +9,6 @@ attribute vec2 uv;
 attribute vec4 orientation;
 attribute vec3 scale;
 
-varying vec3 vPosition;
 varying vec4 vColor;
 
 vec3 applyQuaternionToVector( vec4 q, vec3 v ){
@@ -23,7 +22,7 @@ void main() {
 	
 	vColor = vec4 (1.0,1.0,1.0,1.0);
 	
-	vPosition = applyQuaternionToVector( orientation, position*scale );
+	vec3 vPosition = applyQuaternionToVector( orientation, position*scale );
 	gl_Position = projectionMatrix * modelViewMatrix * vec4( offset + vPosition, 1.0 );
 
 }

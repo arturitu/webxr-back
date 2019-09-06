@@ -105,15 +105,15 @@ module.exports = class Synth {
   playNote (v) {
     const osc4 = this.audioContext.createOscillator()
     osc4.frequency.value = 440 * 1.06 ** (12 - v)
+    if (this.audioActive === 'false') {
+      return
+    }
     osc4.connect(this.audioContext.destination)
     osc4.start(this.audioContext.currentTime)
     osc4.stop(this.audioContext.currentTime + this.actualTempo)
   }
 
   tick () {
-    if (this.audioActive === 'false') {
-      return
-    }
     if (this.sequencePoint < this.activeSeq.length) {
       if (this.activeSeq[this.sequencePoint]) {
         this.playNote(this.activeSeq[this.sequencePoint])

@@ -73,7 +73,7 @@ export default class Score extends THREE.Group {
       this.hexStr = '#' + Config.highscoreColor.toString(16)
       this.context.fillStyle = this.hexStr
       this.context.font = 'bolder 28px sans-serif'
-      this.context.fillText('YOUR BEST', this.canvas.width / 2, this.canvas.height / 2 - 42)
+      this.context.fillText('·YOUR·BEST·', this.canvas.width / 2, this.canvas.height / 2 - 42)
       this.context.font = 'bolder 96px sans-serif'
     } else {
       this.material.opacity = 0.8

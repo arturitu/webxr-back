@@ -4,7 +4,7 @@ uniform float fogNear;
 uniform float fogFar;
 
 uniform vec3 fogColor;
-// varying vec3 vPosition;
+varying vec3 vPosition;
 varying vec4 vColor;
 
 void main() {

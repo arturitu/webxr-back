@@ -89,8 +89,6 @@ module.exports = class GameManager {
   }
 
   newRound () {
-    this.app.scene.background = new THREE.Color(Config.bgColor)
-    this.app.scene.fog = new THREE.Fog(Config.bgColor, 0, 45)
     if (this.cyclesPerRound === 5) {
       this.cyclesPerRound = 1
     } else {
@@ -130,6 +128,7 @@ module.exports = class GameManager {
     } else if (this.cycle < this.cyclesPerRound * 2 && this.caught === this.cyclesPerRound) {
       // Back time
       this.app.emit('rew')
+      this.app.emit('colorChanged', 0x000000, true)
       this.gameStatus = 3
       this.app.emit('changedToBackSpeed', this.backSpeed)
       var modBack = this.cycle % this.cyclesPerRound
@@ -239,7 +238,7 @@ module.exports = class GameManager {
     this.tokensStore[this.caught] = [[], []]
     for (var i = 0; i < tokensChildren.length; i++) {
       tokensChildren[i].position.x = i * 2 - 4
-      var tmpColor = Config.colorArr[i]
+      var tmpColor = Config.colorArr[i][0]
       tokensChildren[i].material.color.set(tmpColor)
       this.tokensStore[this.caught][0][i] = [tokensChildren[i].name, tmpColor]
       if (tokensChildren[i].name === this.correctWay) {
@@ -286,8 +285,7 @@ module.exports = class GameManager {
     this.app.emit('wayChanged', 2)
     this.gameSpeed = 0
     this.app.emit('speedChanged', this.gameSpeed)
-    this.app.scene.background = new THREE.Color(Config.bgColor)
-    this.app.scene.fog = new THREE.Fog(Config.bgColor, 0, 45)
+    this.app.emit('colorChanged', 0x000000, true)
     if (this.score > Number(this.highscore)) {
       this.highscore = this.score
       window.localStorage.setItem('unboring.js13k.back', this.score)
