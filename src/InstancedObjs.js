@@ -41,10 +41,13 @@ export default class InstancedObjs extends THREE.Group {
     this.mesh = new THREE.Mesh(geometry, material)
     this.add(this.mesh)
     this.app.on('resetAtNewCycle', this.resetAtNewCycle.bind(this))
+    this.app.on('speedChanged', this.speedChanged.bind(this))
+    this.app.on('changedToBackSpeed', this.changedToBackSpeed.bind(this))
   }
 
   getGeometry () {
-    const bufferGeometry = new THREE.PlaneBufferGeometry(2, 0.25)
+    // const bufferGeometry = new THREE.PlaneBufferGeometry(2, 0.25)
+    const bufferGeometry = new THREE.CircleBufferGeometry(2, 0)
     const geometry = new THREE.InstancedBufferGeometry()
     geometry.index = bufferGeometry.index
     geometry.attributes.position = bufferGeometry.attributes.position
@@ -56,7 +59,7 @@ export default class InstancedObjs extends THREE.Group {
     var vector = new THREE.Vector4()
     var x, y, z
 
-    this.actualSpeed = 10
+    this.actualSpeed = 0
     this.totalObjs = 300
     for (var i = 0; i < this.totalObjs; i++) {
       // offsets
@@ -94,6 +97,16 @@ export default class InstancedObjs extends THREE.Group {
 
   }
 
+  speedChanged (val) {
+    console.log(val)
+    this.actualSpeed = val
+  }
+
+  changedToBackSpeed (val) {
+    console.log(val)
+    this.actualSpeed = -val
+  }
+
   update (dt = 0, time = 0) {
     // console.log(this.app.renderer.info.render.calls)
     // this.mesh.material.uniforms.time.value = time
@@ -102,7 +115,7 @@ export default class InstancedObjs extends THREE.Group {
     for (var i = 0, il = this.scaleAttribute.count; i < il; i++) {
       // this.currentVector.fromArray(this.scaleAttribute.array, (i * 3))
       // this.scaleAttribute.setXYZ(i, scaleSin * (3 + (i / 100)), 0.2, 1)
-      this.scaleAttribute.setXYZ(i, (3 + (i / 100)), 0.2, 1)
+      this.scaleAttribute.setXYZ(i, (3 + (i / 100)), 0.05, 1)
       if (this.offsetAttribute.getZ(i) > 100) {
         this.offsetAttribute.setZ(i, -100)
       } else if (this.offsetAttribute.getZ(i) < -100) {

@@ -131,6 +131,7 @@ module.exports = class GameManager {
       // Back time
       this.app.emit('rew')
       this.gameStatus = 3
+      this.app.emit('changedToBackSpeed', this.backSpeed)
       var modBack = this.cycle % this.cyclesPerRound
       var indexStoredTokens = this.cyclesPerRound - modBack - 1
       this.app.emit('setStoredTokens')
@@ -140,7 +141,7 @@ module.exports = class GameManager {
       // Remembering time
       this.app.emit('play')
       this.gameStatus = 4
-
+      this.app.emit('speedChanged', this.gameSpeed)
       this.app.emit('shuffleStoredTokens')
       Utils.shuffle(this.tokensStore[this.remembered][0])
       this.placeStoredTokens(this.remembered)
@@ -283,6 +284,8 @@ module.exports = class GameManager {
   endgame () {
     this.app.emit('endgame')
     this.app.emit('wayChanged', 2)
+    this.gameSpeed = 0
+    this.app.emit('speedChanged', this.gameSpeed)
     this.app.scene.background = new THREE.Color(Config.bgColor)
     this.app.scene.fog = new THREE.Fog(Config.bgColor, 0, 45)
     if (this.score > Number(this.highscore)) {
