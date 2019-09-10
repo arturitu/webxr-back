@@ -1,5 +1,4 @@
 
-// Based on https://sonoport.github.io/synthesising-sounds-webaudio.html
 import { app } from './context'
 
 module.exports = class Synth {
@@ -28,7 +27,7 @@ module.exports = class Synth {
     this.actualLoopPoint = 0
 
     if (!window.localStorage.getItem('unboring.js13k.back.audio')) {
-      this.audioActive = 'false'
+      this.audioActive = 'true'
     } else {
       this.audioActive = window.localStorage.getItem('unboring.js13k.back.audio')
     }

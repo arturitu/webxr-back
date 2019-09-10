@@ -1,7 +1,7 @@
 {
   "name": "back-doitagain",
   "version": "0.0.1",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "description": "Go Back (And Do It Again) - A js13k webxr entry",
   "main": "index.js",
   "dependencies": {},
