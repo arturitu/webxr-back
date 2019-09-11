@@ -7,4 +7,4 @@ A pet project where I wanna learn how was the status of the WebXR API now and if
 
 **PLAY HERE** [https://unboring.net/cases/progressive-webxr-game](https://unboring.net/cases/progressive-webxr-game)
 
-**READ CASE STUDY HERE** [Making a Progressive WebXR game with 13Kb + three.js]([https://unboring.net/cases/progressive-webxr-game](https://unboring.net/cases/progressive-webxr-game))
+**READ CASE STUDY HERE** [Making a Progressive WebXR game with 13Kb + three.js](https://unboring.net/cases/progressive-webxr-game)
