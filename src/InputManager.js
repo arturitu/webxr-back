@@ -44,8 +44,8 @@ module.exports = class InputManager {
     this.app.scene.add(this.controller1)
 
     this.controller2 = this.app.renderer.vr.getController(1)
-    this.controller2.addEventListener('selectstart', this.onSelectStart)
-    this.controller2.addEventListener('selectend', this.onSelectEnd)
+    this.controller2.addEventListener('selectstart', this.onSelectStart.bind(this))
+    this.controller2.addEventListener('selectend', this.onSelectEnd.bind(this))
     this.app.scene.add(this.controller2)
 
     // helpers

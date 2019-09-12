@@ -28,8 +28,7 @@ export default class PlayRewPanels extends THREE.Group {
     this.add(this.plane)
     this.plane.name = 'audio'
     this.app.inputManager.addCollider(this.plane)
-
-    if (!window.localStorage.getItem('unboring.js13k.back.audio')) {
+    if (window.localStorage.getItem('unboring.js13k.back.audio') === null) {
       this.audioActive = 'true'
     } else {
       this.audioActive = window.localStorage.getItem('unboring.js13k.back.audio')
